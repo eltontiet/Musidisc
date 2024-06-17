@@ -1,0 +1,22 @@
+{
+  "name": "musidisc",
+  "version": "1.0.0",
+  "description": "A simple discord music bot.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eltontiet/Musidisc.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/eltontiet/Musidisc/issues"
+  },
+  "homepage": "https://github.com/eltontiet/Musidisc#readme",
+  "dependencies": {
+    "discord.js": "^14.15.3"
+  }
+}

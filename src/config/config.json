@@ -1,4 +1,4 @@
 {
-  discordBotKey: "[ENTER KEY HERE]",
-  youtubeAPIKey: "[ENTER KEY HERE]"
+  "DISCORD_BOT_TOKEN": "[ENTER KEY HERE]",
+  "YOUTUBE_API_KEY": "[ENTER KEY HERE]"
 }

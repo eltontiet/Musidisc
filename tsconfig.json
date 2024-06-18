@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+        "outDir": "dist",
+        "module": "commonjs",
+        "baseUrl": "./src",
+        "esModuleInterop": true,
+        "resolveJsonModule": true,
+        "paths": {
+            "@config": [
+                "config/config.json"
+            ],
+            "@VideoHandlers/*": [
+                "VideoHandlers/*"
+            ]
+        }
+    },
+    "exclude": [
+        "node_modules"
+    ]
+}

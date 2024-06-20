@@ -1,7 +1,6 @@
 import path from 'path'
 import fs from 'fs'
 import config from '@config'
-import debug_print from 'debug/debug';
 
 const CMD_FOLDER = path.join(process.cwd() + "/src/DiscordBot/Commands");
 

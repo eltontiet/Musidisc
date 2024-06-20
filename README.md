@@ -16,3 +16,8 @@ The bot can be interacted with using the "slash" commands in discord.
 - `/queue` returns the queue
 - `/remove [num]` removes the specified song from the queue
 - `/clear` clears the queue
+
+
+The bot can add cookies through DMs. To do this "[Insert Method Here (Slash command?)]". It will store the cookies locally and will try to use your cookies when downloading a youtube video (To get private videos). 
+
+TODO: If making a web server, perhaps try to use OAuth instead for better security, but this is just a proof of concept for now.

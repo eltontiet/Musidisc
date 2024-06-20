@@ -11,6 +11,12 @@
             ],
             "@VideoHandlers/*": [
                 "VideoHandlers/*"
+            ],
+            "@customTypes/*": [
+                "types/*"
+            ],
+            "@tmp": [
+                "../tmp"
             ]
         }
     },

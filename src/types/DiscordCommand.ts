@@ -1,3 +1,5 @@
+import { InteractionType } from "discord.js"
+
 export default interface DiscordCommand {
     name: string,
     description: string,
@@ -49,4 +51,11 @@ export enum InteractionContextType {
     GUILD,
     BOT_DM,
     PRIVATE_CHANNEL
+}
+
+export interface DiscordInteractionObject {
+    id: string,
+    application_id: string,
+    type: InteractionType,
+
 }

@@ -2,7 +2,7 @@ import path from 'path'
 import fs from 'fs'
 import config from '@config'
 
-const CMD_FOLDER = path.join(process.cwd() + "/src/DiscordBot/Commands");
+const CMD_FOLDER = path.join(process.cwd() + "/src/DiscordBot/Commands/Declarations");
 
 const DISCORD_PUT_ENDPOINT = `https://discord.com/api/v10/applications/${config.DISCORD_APPLICATION_ID}/commands`
 

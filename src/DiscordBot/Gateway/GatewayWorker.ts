@@ -1,66 +1,97 @@
 import debug_print from "debug/debug";
-import { GatewayIntentBits, GatewayOpcodes, IntentsBitField } from "discord.js";
+import { GatewayIntentBits, GatewayOpcodes } from "discord.js";
 import WebSocket from "ws";
 import config from "@config"
 import User from "@customTypes/User"
+import { EventEmitter } from 'events'
+import voiceHandler from "./Handlers/VoiceHandler";
+import VoiceInformation from "@customTypes/VoiceInformation";
 
 export default class GatewayWorker {
 
     readonly INTENTS: GatewayIntentBits = GatewayIntentBits.GuildVoiceStates | GatewayIntentBits.GuildMessages
 
-    private url: string;
-    private websocket: WebSocket;
-    private heartbeatInterval: number;
-    private dispatchHandler: Function;
+    protected url: string;
+    protected websocket: WebSocket;
+    protected heartbeatInterval: number;
+    protected dispatchHandler: Function;
 
-    private user;
-    private resumeUrl: string;
-    private sessionId: string;
-    private application;
+    protected user;
+    protected resumeUrl: string;
+    protected sessionId: string;
+    protected application;
+    protected serverID: string; // TODO: Do something with this (Set so it can only listen and interact to this guild.)
 
-    private sequenceNum: number;
-    private heartbeatsSinceResponse: number;
+    protected sequenceNum: number;
+    protected heartbeatsSinceResponse: number;
+    protected closed: boolean = false;
 
     private users: Record<string, User>;
 
-    constructor(url) {
+    private voiceCompleted: any | EventEmitter; // Bypass errors for on and emit locally, TODO: should figure out why
+
+    constructor(url, serverID, props?) {
         this.url = url;
         this.users = {};
+        this.serverID = serverID;
+        this.initProps(props); // TODO: band-aid method, should create factory/extract websocket as its own things
         this.connect();
     }
 
-    private connect() {
+    protected initProps(props) {
+
+    }
+
+    protected connect() {
         this.websocket = new WebSocket(this.url);
         this.websocket.on('open', () => {
             console.log(`Connected to server at ${this.url}`);
             console.log(`Sending IDENTIFY state`);
-            this.websocket.send(JSON.stringify({
-                op: GatewayOpcodes.Identify,
-                d: {
-                    token: config.DISCORD_BOT_TOKEN,
-                    intents: this.INTENTS,
-                    properties: {
-                        os: "windows",
-                        browser: "Musidisc",
-                        device: "Musidisc"
-                    }
-                }
-            }))
+            this.sendIdentify();
         })
 
         this.addMessageHandlers();
 
         // Handle errors instead of automatically resuming
+        this.addClosedHandlers();
+    }
+
+    protected addClosedHandlers() {
         this.websocket.on('close', (res) => {
             console.error(res);
-            console.error(`Gateway was closed, reconnecting after one second`);
-            setTimeout(() => {
-                this.resume();
-            }, 1000);
+
+            if (res === 4006 || res === 4014) {
+                console.error("Session was closed by Discord, start a new session to reconnect")
+                this.closed = true;
+            }
+
+            if (!this.closed) {
+                console.error(`Gateway was closed, reconnecting after one second`);
+                setTimeout(() => {
+                    this.resume();
+                }, 1000);
+            } else {
+                console.log("Connection Closed")
+            }
         })
     }
 
-    private resume() {
+    protected sendIdentify() {
+        this.websocket.send(JSON.stringify({
+            op: GatewayOpcodes.Identify,
+            d: {
+                token: config.DISCORD_BOT_TOKEN,
+                intents: this.INTENTS,
+                properties: {
+                    os: "windows",
+                    browser: "Musidisc",
+                    device: "Musidisc"
+                }
+            }
+        }))
+    }
+
+    protected resume() {
         this.websocket = new WebSocket(this.resumeUrl);
         this.websocket.on('open', () => {
             console.log(`Connected to server at ${this.resumeUrl}`);
@@ -76,15 +107,10 @@ export default class GatewayWorker {
 
         this.addMessageHandlers();
 
-        this.websocket.on('close', () => {
-            console.error(`Gateway was closed, reconnecting after one second`);
-            setTimeout(() => {
-                this.resume();
-            }, 1000);
-        })
+        this.addClosedHandlers();
     }
 
-    private addMessageHandlers() {
+    protected addMessageHandlers() {
         this.websocket.on('message', (data) => {
             console.log(`Got message ${data}`);
 
@@ -98,6 +124,9 @@ export default class GatewayWorker {
                     this.heartbeatsSinceResponse = 0;
                     this.heartbeat(this.heartbeatInterval * Math.random());
                     break;
+                case GatewayOpcodes.Heartbeat:
+                    this.sendHeartbeat();
+                    break;
                 case GatewayOpcodes.HeartbeatAck:
                     this.heartbeatsSinceResponse = 0;
                     break;
@@ -108,15 +137,12 @@ export default class GatewayWorker {
         });
     }
 
-    private heartbeat(timeout: number) {
+    protected heartbeat(timeout: number) {
         setTimeout(() => {
             debug_print("Sending heartbeat")
-            this.websocket.send(JSON.stringify({
-                op: GatewayOpcodes.Heartbeat,
-                d: this.sequenceNum
-            }))
+            this.sendHeartbeat();
 
-            if (this.heartbeatsSinceResponse < 2) {
+            if (this.heartbeatsSinceResponse < 2 && !this.closed) {
                 this.heartbeat(this.heartbeatInterval);
                 this.heartbeatsSinceResponse++;
             } else {
@@ -126,6 +152,13 @@ export default class GatewayWorker {
             }
 
         }, timeout);
+    }
+
+    protected sendHeartbeat() {
+        this.websocket.send(JSON.stringify({
+            op: GatewayOpcodes.Heartbeat,
+            d: this.sequenceNum
+        }))
     }
 
     private handleDispatch(json) {
@@ -155,8 +188,56 @@ export default class GatewayWorker {
         this.dispatchHandler = handler;
     }
 
-    public sendData(json: JSON) {
+    public sendData(json: Object) {
         debug_print("Sending data... ")
         this.websocket.send(JSON.stringify(json));
+    }
+
+    public getVoiceInformation(serverID, channelID): Promise<VoiceInformation> {
+        this.voiceCompleted = new EventEmitter();
+
+        // Set up promise:
+        let promise = new Promise<VoiceInformation>((res, err) => {
+            this.voiceCompleted.on('voice', res);
+        })
+
+        // Call send with voice state: 
+        this.sendVoiceStateUpdate(serverID, channelID);
+
+        this.setDispatchHandler(voiceHandler(this.user.id, this.voiceCompleted));
+
+        return promise;
+    }
+
+    private sendVoiceStateUpdate(serverID, channelID) {
+        let payload = {
+            op: 4,
+            d: {
+                guild_id: serverID,
+                channel_id: channelID,
+                self_mute: false,
+                self_deaf: false
+            }
+        }
+
+        this.sendData(payload);
+    }
+
+    public getUserChannel(userID): string {
+        return this.users[userID]?.channel_id;
+    }
+
+    public closeConnection(): void {
+        debug_print("Closing Connection");
+        this.closed = true;
+        this.websocket.close(1000);
+    }
+
+    public isClosed(): boolean {
+        return this.closed;
+    }
+
+    public disconnect(serverID: string) {
+        this.sendVoiceStateUpdate(serverID, null);
     }
 }

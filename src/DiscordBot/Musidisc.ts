@@ -1,11 +1,11 @@
 import debug_print from "debug/debug";
 import { InteractionResponseType, InteractionType, time } from "discord.js";
 import express from "express"
-import { verifyKey, verifyKeyMiddleware } from "discord-interactions";
+import { verifyKeyMiddleware } from "discord-interactions";
 import config from '@config';
 import fs from 'fs';
 import path from 'path'
-import createGatewayConnection from "./Gateway/GatewayUtil";
+import { GatewayWorkerCache } from "./Gateway/GatewayWorkerCache";
 
 const app = express();
 const port = 3000;
@@ -16,7 +16,7 @@ var gatewayWorker;
 
 export default async function StartBot() {
     debug_print("Starting up bot");
-    gatewayWorker = createGatewayConnection();
+    gatewayWorker = GatewayWorkerCache.get("");
 
     configureMiddleware();
     configureEndpoints();

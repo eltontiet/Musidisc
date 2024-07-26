@@ -26,13 +26,13 @@
     "express": "^4.19.2",
     "ffmpeg": "^0.0.4",
     "tmp": "^0.2.3",
-    "ts-node": "^10.9.2",
     "typescript": "^5.4.5",
     "ws": "^8.17.1",
     "ytdl-core": "^4.11.5"
   },
   "devDependencies": {
     "@types/ws": "^8.5.10",
+    "ts-node": "^10.9.2",
     "tsc-alias": "^1.8.10",
     "tsconfig-paths": "^4.2.0"
   }

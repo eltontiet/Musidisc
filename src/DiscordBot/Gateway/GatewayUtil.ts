@@ -1,4 +1,5 @@
 import GatewayWorker from "./GatewayWorker";
+import VoiceWorker from "./VoiceWorker/VoiceWorker";
 
 const GATEWAY_URL = "https://discord.com/api/v10/gateway"
 
@@ -14,11 +15,11 @@ async function getGatewayUrl() {
     })
 }
 
-export default async function createGatewayConnection() {
+export default async function createGatewayConnection(serverID: string): Promise<GatewayWorker> {
     if (gatewayWebSocketUrl === undefined || gatewayWebSocketUrl === "") {
         gatewayWebSocketUrl = await getGatewayUrl();
         if (gatewayWebSocketUrl === "") throw Error("Cannot get gateway url");
     }
 
-    return new GatewayWorker(`${gatewayWebSocketUrl}/?v=10&encoding=json`);
+    return new GatewayWorker(`${gatewayWebSocketUrl}/?v=10&encoding=json`, serverID);
 }

@@ -3,6 +3,7 @@ import GatewayWorker from "../GatewayWorker";
 import { VoiceOpcodes } from "@customTypes/VoiceOpcodes";
 import debug_print from "debug/debug";
 import WebSocket from "ws";
+import VoiceUDPHandler from "./VoiceUDPHandler"
 
 export default class VoiceWorker extends GatewayWorker {
 
@@ -14,6 +15,11 @@ export default class VoiceWorker extends GatewayWorker {
     private udpIP: string;
     private udpPort: number;
     private compressionModes: Array<string>;
+    private secretKey: Uint8Array;
+
+    private udpServer: VoiceUDPHandler;
+
+    private lastHeartbeat;
 
     constructor(voiceInformation: VoiceInformation) {
         super(voiceInformation.endpoint, voiceInformation.server_id, voiceInformation);
@@ -51,7 +57,7 @@ export default class VoiceWorker extends GatewayWorker {
                 case VoiceOpcodes.Hello:
                     this.heartbeatInterval = json.d.heartbeat_interval;
                     this.heartbeatsSinceResponse = 0;
-                    this.heartbeat(100);
+                    this.heartbeat(this.heartbeatInterval);
                     break;
                 case VoiceOpcodes.HeartbeatAck:
                     this.heartbeatsSinceResponse = 0;
@@ -61,12 +67,64 @@ export default class VoiceWorker extends GatewayWorker {
                     this.udpIP = json.d.ip;
                     this.udpPort = json.d.port;
                     this.compressionModes = json.d.modes;
+                    this.setupUDPServer();
+                    this.sendSelect(json);
                     break;
                 case VoiceOpcodes.Heartbeat:
-                    this.sendHeartbeat();
+                    // this.sendHeartbeat();
+                    break;
+                case VoiceOpcodes.Session_Description:
+                    this.secretKey = json.d.secretKey;
                     break;
             }
         });
+    }
+
+    private setupUDPServer() {
+        this.udpServer = new VoiceUDPHandler(this.udpIP, this.udpPort);
+        this.udpServer.sendIPDiscovery(this.ssrc);
+    }
+
+    private async sendSelect(json) {
+        let output = {
+            op: 1,
+            d: {
+                protocol: "udp",
+                data: {
+                    "address": await this.udpServer.getMyAddress(),
+                    "port": this.udpPort,
+                    "mode": "xsalsa20_poly1305"
+                }
+            }
+        }
+
+        this.sendData(output);
+    }
+
+    private async sendSpeaking(json) {
+        let output = {
+            op: 5,
+            d: {
+                speaking: 1,
+                delay: 0,
+                ssrc: this.ssrc
+            }
+        }
+
+        this.sendData(output);
+    }
+
+    private async stopSpeaking(json) {
+        let output = {
+            op: 5,
+            d: {
+                speaking: 0,
+                delay: 0,
+                ssrc: this.ssrc
+            }
+        }
+
+        this.sendData(output);
     }
 
     protected override heartbeat(timeout: number): void {
@@ -87,11 +145,12 @@ export default class VoiceWorker extends GatewayWorker {
     }
 
     protected override sendHeartbeat() {
-        this.nonce = Math.floor(Math.random() * 2 ** 31);
+        this.lastHeartbeat = Date.now();
+        let nonce = this.lastHeartbeat;
         this.websocket.send(JSON.stringify({
             op: VoiceOpcodes.Heartbeat,
-            d: this.nonce
-        }))
+            d: nonce
+        }));
     }
 
     protected override resume() {

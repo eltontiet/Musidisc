@@ -4,6 +4,14 @@ import { VoiceOpcodes } from "@customTypes/VoiceOpcodes";
 import debug_print from "debug/debug";
 import WebSocket from "ws";
 import VoiceUDPHandler from "./VoiceUDPHandler"
+import AudioHandler from "./Audio/AudioHandler"
+import { EventEmitter } from 'events';
+
+export interface VoiceWorkerListener {
+    onPlayed(e: Event): void;
+    onStopped(e: Event): void;
+    onReady(e: Event): void;
+}
 
 export default class VoiceWorker extends GatewayWorker {
 
@@ -18,11 +26,16 @@ export default class VoiceWorker extends GatewayWorker {
     private secretKey: Uint8Array;
 
     private udpServer: VoiceUDPHandler;
+    private audioHandler: AudioHandler;
 
-    private lastHeartbeat;
+    private lastHeartbeat: number;
+    private speaking: boolean;
+
+    private eventEmitter: any | EventEmitter;
 
     constructor(voiceInformation: VoiceInformation) {
         super(voiceInformation.endpoint, voiceInformation.server_id, voiceInformation);
+        this.eventEmitter = new EventEmitter();
     }
 
     override initProps(props: VoiceInformation): void {
@@ -75,6 +88,7 @@ export default class VoiceWorker extends GatewayWorker {
                     break;
                 case VoiceOpcodes.Session_Description:
                     this.secretKey = json.d.secretKey;
+                    this.eventEmitter.emit('ready');
                     break;
             }
         });
@@ -86,6 +100,7 @@ export default class VoiceWorker extends GatewayWorker {
     }
 
     private async sendSelect(json) {
+        debug_print("SENDING SELECT");
         let output = {
             op: 1,
             d: {
@@ -101,7 +116,9 @@ export default class VoiceWorker extends GatewayWorker {
         this.sendData(output);
     }
 
-    private async sendSpeaking(json) {
+    public async startSpeaking() {
+        if (this.speaking) return;
+
         let output = {
             op: 5,
             d: {
@@ -112,9 +129,13 @@ export default class VoiceWorker extends GatewayWorker {
         }
 
         this.sendData(output);
+
+        this.speaking = true;
     }
 
-    private async stopSpeaking(json) {
+    public async stopSpeaking() {
+        if (!this.speaking) return;
+
         let output = {
             op: 5,
             d: {
@@ -125,6 +146,7 @@ export default class VoiceWorker extends GatewayWorker {
         }
 
         this.sendData(output);
+        this.speaking = false;
     }
 
     protected override heartbeat(timeout: number): void {
@@ -174,6 +196,24 @@ export default class VoiceWorker extends GatewayWorker {
 
     public override closeConnection() {
         super.closeConnection();
+    }
+
+    public getAudioHandler() {
+        if (!this.audioHandler) {
+            this.audioHandler = new AudioHandler(this);
+        }
+
+        return this.audioHandler;
+    }
+
+    public addListener(observer: VoiceWorkerListener) {
+        this.eventEmitter.on('play', observer.onPlayed);
+        this.eventEmitter.on('stop', observer.onStopped);
+        this.eventEmitter.on('ready', observer.onReady);
+    }
+
+    public playPacket(packet, sequence, timestamp) {
+        this.udpServer.sendPacket(packet, sequence, timestamp, this.ssrc, this.secretKey);
     }
 
     /** 

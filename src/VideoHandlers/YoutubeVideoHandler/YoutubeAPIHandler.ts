@@ -30,7 +30,7 @@ const YOUTUBE_VIDEO_LIST_REQUEST_OPTIONS = {
     headers: { "Content-Type": "application/json", }
 }
 
-export default async function search(query: string, pageToken?: string): Promise<SearchResults> {
+export async function search(query: string, pageToken?: string): Promise<SearchResults> {
     let parameters = YOUTUBE_SEARCH_PARAMETERS;
     parameters["q"] = query;
 

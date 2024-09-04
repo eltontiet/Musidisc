@@ -1,8 +1,10 @@
 import config from '@config'
-import yth, { getNextPage } from '@VideoHandlers/YoutubeVideoHandler/YoutubeAPIHandler'
-import yvh from '@VideoHandlers/YoutubeVideoHandler/YoutubeVideoHandler'
+import * as yth from '@VideoHandlers/YoutubeVideoHandler/YoutubeAPIHandler'
+import * as YoutubeVideo from '@VideoHandlers/YoutubeVideoHandler/YoutubeVideoHandler'
 import { debug_properties } from 'debug/debug'
 import StartBot from 'DiscordBot/Musidisc'
+import prism from 'prism-media';
+import fs from 'fs';
 
 process.argv.forEach((val, index) => {
     if (val === "-D") debug_properties.flag = true;
@@ -15,3 +17,26 @@ StartBot();
 //     console.log(searchResults);
 //     yvh(searchResults.results[0].id);
 // })
+
+
+// yth.search("Payphone").then((searchResults) => {
+//     return YoutubeVideo.downloadVideo(searchResults.results[0].id);
+// }).then((videoStream) => {
+
+//     console.log("Got video stream");
+//     let transcoder = new prism.FFmpeg({
+//         args: [
+//             '-analyzeduration', '0',
+//             '-f', 's16le',
+//             '-ar', '48000',
+//             '-ac', '2',
+//         ]
+//     })
+
+
+//     return fs.createReadStream("./tmp/neck+ripping.ogg").pipe(new prism.opus.OggDemuxer())
+//         .pipe(new prism.opus.Decoder({ rate: 48000, channels: 2, frameSize: 960 }))
+//         .pipe(fs.createWriteStream('./audio.pcm'));
+
+// })
+

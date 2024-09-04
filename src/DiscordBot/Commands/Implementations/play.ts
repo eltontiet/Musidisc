@@ -3,6 +3,9 @@ import VoiceWorker from "DiscordBot/Gateway/VoiceWorker/VoiceWorker";
 import { VoiceWorkerCache } from "DiscordBot/Gateway/VoiceWorker/VoiceWorkerCache";
 import debug_print from "debug/debug";
 import { ApplicationCommand, InteractionResponseType } from "discord.js";
+import * as YoutubeAPIHandler from "@VideoHandlers/YoutubeVideoHandler/YoutubeAPIHandler";
+import YoutubeFileQueueObject from "DiscordBot/Gateway/VoiceWorker/Audio/YoutubeFileQueueObject";
+import LocalFileQueueObject from "DiscordBot/Gateway/VoiceWorker/Audio/LocalFileQueueObject";
 
 var worker;
 
@@ -44,6 +47,15 @@ export default async function play(req, res) {
 
     }
 
+    let searchResults = await YoutubeAPIHandler.search(req.body.data.name);
 
+    let audioHandler = voiceWorker.getAudioHandler();
+
+    // audioHandler.addToQueue(new YoutubeFileQueueObject(searchResults.results[0]));
+    audioHandler.addToQueue(new LocalFileQueueObject());
+    audioHandler.addToQueue(new LocalFileQueueObject());
+    audioHandler.addToQueue(new LocalFileQueueObject());
+    audioHandler.addToQueue(new LocalFileQueueObject());
+    audioHandler.playSong();
     // TODO: Send music data
 }

@@ -1,6 +1,8 @@
 import debug_print from 'debug/debug';
 import dgram from 'dgram';
 import { EventEmitter } from 'events';
+import { VoiceUDPState } from './VoiceUDPState';
+import libsodium from 'libsodium-wrappers';
 
 export default class VoiceUDPHandler {
 
@@ -11,43 +13,50 @@ export default class VoiceUDPHandler {
 
     private myAddressFound: any | EventEmitter;
 
+    private state: VoiceUDPState;
+
     constructor(ip, port) {
         this.server = dgram.createSocket('udp4');
         this.setupListeners();
         this.ip = ip;
         this.port = port;
         this.server.bind(port);
+        this.state = VoiceUDPState.INIT
 
         debug_print(`Setup server at ${ip}:${port}`);
     }
 
     private setupListeners() {
-        this.server.on('message', (msg, rinfo) => {
-            debug_print(`Got message ${msg} from ${rinfo.address}:${rinfo.port}`);
-
-            if (msg.readInt16BE() === 2) {
-                let length = msg.readInt16BE(2);
-                let ssrc = msg.readBigInt64BE(4);
-                let i = 8;
-                let address = [];
-                let byte;
-                do {
-                    byte = msg.readInt8(i);
-                    address.push(byte);
-                    i++;
-                } while (byte !== 0);
-
-                this.myAddress = Buffer.from(address).toString('ascii');
-                this.myAddressFound?.emit('completed');
-
-
-            }
-        });
+        this.server.on('message', this.handleMessage);
 
         this.server.on('error', (err) => {
             console.error(`UDP Server was closed with error:`);
             console.error(err);
         })
+    }
+
+    private handleMessage(msg, rinfo) {
+        debug_print(`Got message ${msg} from ${rinfo.address}:${rinfo.port}`);
+
+        if (this.state === VoiceUDPState.IP_DISCOVERY && msg.readInt16BE() === 2) {
+            let length = msg.readInt16BE(2);
+            let ssrc = msg.readBigInt64BE(4);
+            let i = 8;
+            let address = [];
+            let byte;
+            do {
+                byte = msg.readInt8(i);
+                address.push(byte);
+                i++;
+            } while (byte !== 0);
+
+            this.myAddress = Buffer.from(address).toString('ascii');
+            this.myAddressFound?.emit('completed');
+
+
+        } else {
+
+        }
     }
 
     public getMyAddress(): Promise<string> {
@@ -70,6 +79,8 @@ export default class VoiceUDPHandler {
     }
 
     public sendIPDiscovery(ssrc: number) {
+        if (this.state !== VoiceUDPState.INIT) return;
+
         debug_print("Sending ip discovery packet");
 
         let buffer = [];
@@ -89,6 +100,7 @@ export default class VoiceUDPHandler {
         buffer = buffer.concat(portByteArray);
 
         this.send(Uint8Array.from(buffer));
+        this.state = VoiceUDPState.IP_DISCOVERY;
     }
 
     private getBytes(num: number) {
@@ -100,5 +112,29 @@ export default class VoiceUDPHandler {
         }
 
         return byteArr;
+    }
+
+    public async sendPacket(packet, sequence, timestamp, ssrc, secretKey) {
+        let header: Buffer = Buffer.alloc(12);
+        header[0] = 0x80;
+        header[1] = 0x78;
+
+        header.writeUInt16BE(sequence, 2);
+        header.writeUInt32BE(timestamp, 2);
+        header.writeUInt32BE(ssrc, 2);
+
+        let nonce = Buffer.alloc(24);
+        header.copy(nonce, 0, 0, 12);
+
+        let opus = await this.encryptOpusPacket(packet, nonce, secretKey);
+
+        this.send(Buffer.concat([header, opus]))
+    }
+
+    private async encryptOpusPacket(packet, nonce, secretKey): Promise<Uint8Array> {
+        await libsodium.ready;
+
+        libsodium.crypto_secretbox_easy(packet, packet, nonce, secretKey);
+        return packet;
     }
 }

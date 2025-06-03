@@ -7,7 +7,7 @@ export default class LocalFileQueueObject implements QueueObject {
 
     public async getOpusResource() {
         return fs.createReadStream("./tmp/neck+ripping.ogg").pipe(new prism.opus.OggDemuxer())
-            .pipe(new prism.opus.Decoder({ rate: 48000, channels: 2, frameSize: 960 }));
+            .pipe(new prism.opus.Decoder({ rate: 48000, channels: 2, frameSize: 20 }));
     }
 
 }

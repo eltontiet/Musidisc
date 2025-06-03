@@ -16,6 +16,7 @@ var gatewayWorker;
 
 export default async function StartBot() {
     debug_print("Starting up bot");
+
     gatewayWorker = GatewayWorkerCache.get("");
 
     configureMiddleware();

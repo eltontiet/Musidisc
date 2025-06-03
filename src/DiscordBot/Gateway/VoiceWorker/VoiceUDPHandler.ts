@@ -23,10 +23,22 @@ export default class VoiceUDPHandler {
         this.server.bind(port);
         this.state = VoiceUDPState.INIT
 
-        debug_print(`Setup server at ${ip}:${port}`);
+        if (libsodium.sodiu)
+
+            debug_print(`Setup server at ${ip}:${port}`);
+    }
+
+    private printState() {
+        console.log(`VoiceUDPHandler Info:`)
+        console.log(`\tState: ${this.state}`)
+        console.log(`\tip: ${this.ip}`)
+        console.log(`\tport: ${this.port}`)
+        console.log(`\tmy address: ${this.myAddress}`)
     }
 
     private setupListeners() {
+        this.handleMessage = this.handleMessage.bind(this);
+
         this.server.on('message', this.handleMessage);
 
         this.server.on('error', (err) => {
@@ -35,8 +47,9 @@ export default class VoiceUDPHandler {
         })
     }
 
-    private handleMessage(msg, rinfo) {
-        debug_print(`Got message ${msg} from ${rinfo.address}:${rinfo.port}`);
+    private handleMessage(msg: Buffer, rinfo) {
+        debug_print(`Got message ${msg.toString('hex')} from ${rinfo.address}:${rinfo.port}`);
+        this.printState()
 
         if (this.state === VoiceUDPState.IP_DISCOVERY && msg.readInt16BE() === 2) {
             let length = msg.readInt16BE(2);
@@ -51,11 +64,26 @@ export default class VoiceUDPHandler {
             } while (byte !== 0);
 
             this.myAddress = Buffer.from(address).toString('ascii');
+
+            debug_print("Emitting myAddressFound completed!")
+
             this.myAddressFound?.emit('completed');
 
 
         } else {
 
+            // let header = Buffer.alloc(12);
+            // let i = 0;
+
+            // do {
+            //     let byte = msg.readInt8(i);
+            //     header[i] = byte;
+            //     i++;
+            // } while (i < 12);
+            // let nonce = Buffer.alloc(24);
+            // header.copy(nonce, 0, 0, 12);
+
+            // libsodium.crypto_secretbox_open_easy(msg, nonce, this.)
         }
     }
 
@@ -65,6 +93,7 @@ export default class VoiceUDPHandler {
 
             return new Promise<string>((resolve, reject) => {
                 this.myAddressFound.on('completed', () => {
+                    debug_print("Address found event fired!")
                     resolve(this.myAddress);
                 })
             })
@@ -115,26 +144,35 @@ export default class VoiceUDPHandler {
     }
 
     public async sendPacket(packet, sequence, timestamp, ssrc, secretKey) {
+
         let header: Buffer = Buffer.alloc(12);
         header[0] = 0x80;
         header[1] = 0x78;
 
         header.writeUInt16BE(sequence, 2);
-        header.writeUInt32BE(timestamp, 2);
-        header.writeUInt32BE(ssrc, 2);
+        header.writeUInt32BE(timestamp, 4);
+        header.writeUInt32BE(ssrc, 8);
 
         let nonce = Buffer.alloc(24);
         header.copy(nonce, 0, 0, 12);
 
-        let opus = await this.encryptOpusPacket(packet, nonce, secretKey);
+        let opus = await this.encryptOpusPacket(packet, nonce, new Uint8Array(secretKey));
 
-        this.send(Buffer.concat([header, opus]))
+        let payload = Buffer.concat([header, opus]);
+
+        console.log(payload);
+
+        this.send(payload)
     }
 
     private async encryptOpusPacket(packet, nonce, secretKey): Promise<Uint8Array> {
-        await libsodium.ready;
+        if (!libsodium.ready) {
+            debug_print("Waiting for libsodium!");
+            await libsodium;
+            debug_print("libsodium ready!");
+        }
 
-        libsodium.crypto_secretbox_easy(packet, packet, nonce, secretKey);
-        return packet;
+        let cipher = libsodium.crypto_secretbox_easy(packet, nonce, secretKey);
+        return cipher;
     }
 }

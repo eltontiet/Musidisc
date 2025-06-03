@@ -62,7 +62,7 @@ export default class GatewayWorker {
 
             if (res === 4006 || res === 4014) {
                 console.error("Session was closed by Discord, start a new session to reconnect")
-                this.closed = true;
+                this.closeConnection();
             }
 
             if (!this.closed) {

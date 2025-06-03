@@ -33,9 +33,12 @@ export default class VoiceWorker extends GatewayWorker {
 
     private eventEmitter: any | EventEmitter;
 
+    private ready: boolean;
+
     constructor(voiceInformation: VoiceInformation) {
         super(voiceInformation.endpoint, voiceInformation.server_id, voiceInformation);
         this.eventEmitter = new EventEmitter();
+        this.ready = false;
     }
 
     override initProps(props: VoiceInformation): void {
@@ -46,6 +49,7 @@ export default class VoiceWorker extends GatewayWorker {
     }
 
     protected override sendIdentify(): void {
+        debug_print("Sending identify")
         this.websocket.send(JSON.stringify({
             op: VoiceOpcodes.Identify,
             d: {
@@ -87,7 +91,8 @@ export default class VoiceWorker extends GatewayWorker {
                     // this.sendHeartbeat();
                     break;
                 case VoiceOpcodes.Session_Description:
-                    this.secretKey = json.d.secretKey;
+                    this.secretKey = json.d.secret_key;
+                    this.ready = true;
                     this.eventEmitter.emit('ready');
                     break;
             }
@@ -214,6 +219,10 @@ export default class VoiceWorker extends GatewayWorker {
 
     public playPacket(packet, sequence, timestamp) {
         this.udpServer.sendPacket(packet, sequence, timestamp, this.ssrc, this.secretKey);
+    }
+
+    public isReady(): boolean {
+        return this.ready;
     }
 
     /** 

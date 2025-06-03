@@ -2,6 +2,7 @@ import { OpusStream } from 'prism-media/typings/opus';
 import VoiceWorker, { VoiceWorkerListener } from '../VoiceWorker'
 import QueueObject from './QueueObject';
 import debug_print from 'debug/debug';
+import { debug } from 'console';
 
 interface AudioHandlerState {
     playing: boolean;
@@ -25,9 +26,6 @@ export default class AudioHandler implements VoiceWorkerListener {
 
     private shouldPlay: boolean;
 
-    private ready: boolean;
-
-
     private playTimer;
 
     constructor(voiceWorker: VoiceWorker) {
@@ -47,19 +45,26 @@ export default class AudioHandler implements VoiceWorkerListener {
     }
 
     public async playSong() {
-        if (!this.ready) {
+        if (!this.voiceWorker.isReady()) {
             this.shouldPlay = true;
             return;
         }
         if (!this.playTimer) {
+            debug_print("Starting audio!");
+
+            this.voiceWorker.startSpeaking();
+
             this.state.opusStream = await this.queue[0].getOpusResource();
-            this.state.opusStream.on('end', this.finishSong);
+            this.state.opusStream.on('end', this.finishSong.bind(this));
             this.state.playing = true;
             this.playTimer = setInterval(this.sendNextPacket.bind(this), 20);
         }
     }
 
     public sendNextPacket() {
+
+        debug_print(`Sending next packet sequence: ${this.state.sequence}`)
+
         let packet;
         if (this.framesOfSilence > 0) {
             packet = SILENCE_FRAME;
@@ -86,12 +91,13 @@ export default class AudioHandler implements VoiceWorkerListener {
         this.framesOfSilence = 5;
         this.state.playing = false;
         this.queue = this.queue.slice(1);
+
+        this.voiceWorker.stopSpeaking();
     }
 
     public onReady(e) {
         debug_print("Got ready event")
 
-        this.ready = true;
         if (this.shouldPlay) {
             this.playSong();
         }

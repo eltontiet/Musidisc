@@ -13,7 +13,7 @@ export default function voiceHandler(botID, eventHandler): (json: any) => void {
         if (stop_receiving) return;
 
         if (json.t === "VOICE_STATE_UPDATE") {
-            debug_print("Got Voice Server Update");
+            debug_print("Got Voice State Update");
             if (json.d.member.user.id === botID) {
                 info["user_id"] = json.d.user_id;
                 info["session_id"] = json.d.session_id;
@@ -23,7 +23,7 @@ export default function voiceHandler(botID, eventHandler): (json: any) => void {
         } else if (json.t === "VOICE_SERVER_UPDATE") {
             debug_print("Got Voice Server Update");
             info["token"] = json.d.token;
-            info["endpoint"] = `wss://${json.d.endpoint}`;
+            info["endpoint"] = `wss://${json.d.endpoint}?v=7`;
             server_received = true;
         }
 

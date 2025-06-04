@@ -74,6 +74,9 @@ export default class AudioHandler implements VoiceWorkerListener {
             packet = SILENCE_FRAME;
             this.framesOfSilence--;
 
+        } else if (!this.state.opusStream.readable && this.state.playing) {
+            debug_print("Data is not readable... skipping");
+            return; // Skip this iteration TODO: gracefully skip song if too many errors
         } else if (this.state.playing === true) {
             packet = this.state.opusStream.read();
 

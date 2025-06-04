@@ -3,6 +3,7 @@ import VoiceWorker, { VoiceWorkerListener } from '../VoiceWorker'
 import QueueObject from './QueueObject';
 import debug_print from 'debug/debug';
 import { debug } from 'console';
+import { getRandomValues, randomBytes, randomInt, randomUUID } from 'crypto';
 
 interface AudioHandlerState {
     playing: boolean;
@@ -49,10 +50,13 @@ export default class AudioHandler implements VoiceWorkerListener {
             this.shouldPlay = true;
             return;
         }
-        if (!this.playTimer) {
+        if (!this.state.playing) {
             debug_print("Starting audio!");
 
             this.voiceWorker.startSpeaking();
+
+            this.state.sequence = randomInt(2 ** 16);
+            this.state.timestamp = randomInt(2 ** 32);
 
             this.state.opusStream = await this.queue[0].getOpusResource();
             this.state.opusStream.on('end', this.finishSong.bind(this));

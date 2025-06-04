@@ -1,5 +1,5 @@
 import QueueObject from "./QueueObject";
-import prism from 'prism-media'
+import prism, { opus } from 'prism-media'
 import * as YoutubeVideo from '@VideoHandlers/YoutubeVideoHandler/YoutubeVideoHandler'
 import { Result } from "@customTypes/Results";
 import fs from 'fs';
@@ -25,8 +25,7 @@ export default class YoutubeFileQueueObject implements QueueObject {
             ]
         })
 
-        return videoStream.pipe(new prism.opus.Decoder({ rate: 48000, channels: 2, frameSize: 960 }))
-            .pipe(fs.createWriteStream('./audio.pcm'));
+        return videoStream.pipe(new prism.opus.Encoder({ rate: 48000, channels: 2, frameSize: 960 }));
 
     }
 

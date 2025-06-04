@@ -10,6 +10,11 @@ process.argv.forEach((val, index) => {
     if (val === "-D") debug_properties.flag = true;
 })
 
+// fs.createReadStream("./tmp/spying.opus")
+//     .pipe(new prism.opus.Decoder({ rate: 48000, channels: 2, frameSize: 960 }))
+//     .pipe(fs.createWriteStream("./tmp/spying.pcm"));
+
+
 StartBot();
 
 

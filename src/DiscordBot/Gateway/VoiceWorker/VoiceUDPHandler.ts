@@ -3,6 +3,7 @@ import dgram from 'dgram';
 import { EventEmitter } from 'events';
 import { VoiceUDPState } from './VoiceUDPState';
 import libsodium from 'libsodium-wrappers';
+import fs, { WriteStream } from 'fs';
 
 export default class VoiceUDPHandler {
 
@@ -11,9 +12,14 @@ export default class VoiceUDPHandler {
     private port: number;
     private myAddress: string;
 
+
+    public secretKey: Uint8Array;
+
     private myAddressFound: any | EventEmitter;
 
     private state: VoiceUDPState;
+
+    private recordFile: WriteStream;
 
     constructor(ip, port) {
         this.server = dgram.createSocket('udp4');
@@ -22,10 +28,9 @@ export default class VoiceUDPHandler {
         this.port = port;
         this.server.bind(port);
         this.state = VoiceUDPState.INIT
+        this.recordFile = fs.createWriteStream('tmp/spying.opus');
 
-        if (libsodium.sodiu)
-
-            debug_print(`Setup server at ${ip}:${port}`);
+        debug_print(`Setup server at ${ip}:${port}`);
     }
 
     private printState() {
@@ -72,18 +77,18 @@ export default class VoiceUDPHandler {
 
         } else {
 
-            // let header = Buffer.alloc(12);
-            // let i = 0;
+            let header = Buffer.alloc(12);
+            let i = 0;
 
-            // do {
-            //     let byte = msg.readInt8(i);
-            //     header[i] = byte;
-            //     i++;
-            // } while (i < 12);
-            // let nonce = Buffer.alloc(24);
-            // header.copy(nonce, 0, 0, 12);
+            do {
+                let byte = msg.readInt8(i);
+                header[i] = byte;
+                i++;
+            } while (i < 12);
+            let nonce = Buffer.alloc(24);
+            header.copy(nonce, 0, 0, 12);
 
-            // libsodium.crypto_secretbox_open_easy(msg, nonce, this.)
+            // this.recordFile.write(libsodium.crypto_secretbox_open_easy(msg.slice(12), nonce, this.secretKey));
         }
     }
 
@@ -173,6 +178,10 @@ export default class VoiceUDPHandler {
         }
 
         let cipher = libsodium.crypto_secretbox_easy(packet, nonce, secretKey);
+
+        // this.recordFile.write(libsodium.crypto_secretbox_open_easy(cipher, nonce, secretKey));
+        this.recordFile.write(packet);
+
         return cipher;
     }
 }

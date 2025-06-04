@@ -51,11 +51,13 @@ export default async function play(req, res) {
 
     let audioHandler = voiceWorker.getAudioHandler();
 
+    new YoutubeFileQueueObject(searchResults.results[0]);
+
     // audioHandler.addToQueue(new YoutubeFileQueueObject(searchResults.results[0]));
     audioHandler.addToQueue(new LocalFileQueueObject());
-    audioHandler.addToQueue(new LocalFileQueueObject());
-    audioHandler.addToQueue(new LocalFileQueueObject());
-    audioHandler.addToQueue(new LocalFileQueueObject());
+    // audioHandler.addToQueue(new LocalFileQueueObject());
+    // audioHandler.addToQueue(new LocalFileQueueObject());
+    // audioHandler.addToQueue(new LocalFileQueueObject());
     audioHandler.playSong();
     // TODO: Send music data
 }

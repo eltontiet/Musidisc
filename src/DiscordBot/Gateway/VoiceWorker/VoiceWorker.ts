@@ -92,6 +92,7 @@ export default class VoiceWorker extends GatewayWorker {
                     break;
                 case VoiceOpcodes.Session_Description:
                     this.secretKey = json.d.secret_key;
+                    this.udpServer.secretKey = new Uint8Array(this.secretKey);
                     this.ready = true;
                     this.eventEmitter.emit('ready');
                     break;

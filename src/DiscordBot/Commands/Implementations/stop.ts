@@ -31,6 +31,7 @@ export default async function stop(req, res) {
         }
         gatewayWorker.disconnect(serverID);
         voiceWorker.closeConnection();
+        VoiceWorkerCache.remove(serverID);
     }
 
 

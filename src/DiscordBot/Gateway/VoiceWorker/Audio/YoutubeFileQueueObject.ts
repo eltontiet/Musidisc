@@ -3,6 +3,7 @@ import prism, { opus } from 'prism-media'
 import * as YoutubeVideo from '@VideoHandlers/YoutubeVideoHandler/YoutubeVideoHandler'
 import { Result } from "@customTypes/Results";
 import fs from 'fs';
+import { OpusStream } from "prism-media/typings/opus";
 
 export default class YoutubeFileQueueObject implements QueueObject {
 
@@ -25,7 +26,8 @@ export default class YoutubeFileQueueObject implements QueueObject {
             ]
         })
 
-        return videoStream.pipe(new prism.opus.Encoder({ rate: 48000, channels: 2, frameSize: 960 }));
+        return videoStream.pipe(transcoder)
+            .pipe(new prism.opus.Encoder({ rate: 48000, channels: 2, frameSize: 960 }))
 
     }
 

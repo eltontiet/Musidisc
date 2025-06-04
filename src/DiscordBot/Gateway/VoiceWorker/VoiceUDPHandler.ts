@@ -49,12 +49,13 @@ export default class VoiceUDPHandler {
         this.server.on('error', (err) => {
             console.error(`UDP Server was closed with error:`);
             console.error(err);
+            this.state = VoiceUDPState.STOPPED;
         })
     }
 
     private handleMessage(msg: Buffer, rinfo) {
-        debug_print(`Got message ${msg.toString('hex')} from ${rinfo.address}:${rinfo.port}`);
-        this.printState()
+        // debug_print(`Got message ${msg.toString('hex')} from ${rinfo.address}:${rinfo.port}`);
+        // this.printState()
 
         if (this.state === VoiceUDPState.IP_DISCOVERY && msg.readInt16BE() === 2) {
             let length = msg.readInt16BE(2);
@@ -164,8 +165,6 @@ export default class VoiceUDPHandler {
         let opus = await this.encryptOpusPacket(packet, nonce, new Uint8Array(secretKey));
 
         let payload = Buffer.concat([header, opus]);
-
-        console.log(payload);
 
         this.send(payload)
     }

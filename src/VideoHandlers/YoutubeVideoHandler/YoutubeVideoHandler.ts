@@ -1,4 +1,4 @@
-import ytdl from 'ytdl-core'
+import ytdl from '@distube/ytdl-core'
 import fs from 'fs'
 import path from 'path'
 import debug_print from 'debug/debug'

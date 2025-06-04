@@ -14,6 +14,8 @@ interface AudioHandlerState {
 
 const SILENCE_FRAME = Buffer.from([0xf8, 0xff, 0xfe]);
 
+// TODO: Add a way to destroy the queue and current song
+
 // TODO: I do not like how AudioHandler and VoiceWorker interact right now, maybe make VoiceWorker part of AudioHandler, and store AudioHandler in the cache
 export default class AudioHandler implements VoiceWorkerListener {
 
@@ -55,8 +57,6 @@ export default class AudioHandler implements VoiceWorkerListener {
 
             this.voiceWorker.startSpeaking();
 
-            this.state.sequence = randomInt(2 ** 16);
-            this.state.timestamp = randomInt(2 ** 32);
 
             this.state.opusStream = await this.queue[0].getOpusResource();
             this.state.opusStream.on('end', this.finishSong.bind(this));
@@ -67,7 +67,7 @@ export default class AudioHandler implements VoiceWorkerListener {
 
     public sendNextPacket() {
 
-        debug_print(`Sending next packet sequence: ${this.state.sequence}`)
+        // debug_print(`Sending next packet sequence: ${this.state.sequence}, ts: ${this.state.timestamp}`)
 
         let packet;
         if (this.framesOfSilence > 0) {
@@ -89,9 +89,15 @@ export default class AudioHandler implements VoiceWorkerListener {
             }
             return;
         }
+
+        if (!packet) {
+            console.error("Tried to play a null packet, skipping....");
+            return;
+        }
+
         this.voiceWorker.playPacket(packet, this.state.sequence, this.state.timestamp);
         this.state.sequence++;
-        this.state.timestamp += 20;
+        this.state.timestamp += 960;
     }
 
     private finishSong(e) {
@@ -116,6 +122,12 @@ export default class AudioHandler implements VoiceWorkerListener {
     public onStopped(e: Event) {
     }
 
+    public stop() {
+        this.queue = [];
+        this.state.playing = false;
+        this.state.opusStream = undefined;
+        clearInterval(this.playTimer);
+    }
 
 
 }

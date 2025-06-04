@@ -1,3 +1,4 @@
+import { server } from "typescript";
 import VoiceWorker from "./VoiceWorker";
 
 export class VoiceWorkerCache {
@@ -16,5 +17,9 @@ export class VoiceWorkerCache {
 
     public static add(serverID: string, voiceWorker: VoiceWorker) {
         this.cache[serverID] = voiceWorker;
+    }
+
+    public static remove(serverID: string) {
+        this.cache[serverID] = undefined;
     }
 }

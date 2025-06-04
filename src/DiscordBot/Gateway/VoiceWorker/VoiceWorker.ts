@@ -18,6 +18,7 @@ export default class VoiceWorker extends GatewayWorker {
     private token: string;
     private nonce: number; // TODO: check against ack to make sure is same
     private user_id: string;
+    private channel_id: string;
 
     private ssrc: number;
     private udpIP: string;
@@ -35,10 +36,11 @@ export default class VoiceWorker extends GatewayWorker {
 
     private ready: boolean;
 
-    constructor(voiceInformation: VoiceInformation) {
+    constructor(voiceInformation: VoiceInformation, channelID: string) {
         super(voiceInformation.endpoint, voiceInformation.server_id, voiceInformation);
         this.eventEmitter = new EventEmitter();
         this.ready = false;
+        this.channel_id = this.channel_id
     }
 
     override initProps(props: VoiceInformation): void {
@@ -200,8 +202,10 @@ export default class VoiceWorker extends GatewayWorker {
         this.addClosedHandlers();
     }
 
+    // TODO: Add kill here
     public override closeConnection() {
         super.closeConnection();
+        this.audioHandler.stop();
     }
 
     public getAudioHandler() {
@@ -224,6 +228,10 @@ export default class VoiceWorker extends GatewayWorker {
 
     public isReady(): boolean {
         return this.ready;
+    }
+
+    public getChannelID(): string {
+        return this.channel_id;
     }
 
     /** 

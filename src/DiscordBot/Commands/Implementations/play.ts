@@ -36,22 +36,24 @@ export default async function play(req, res) {
     let serverID = req.body.guild_id;
     let voiceWorker: VoiceWorker = VoiceWorkerCache.get(serverID);
 
-    if (voiceWorker === undefined || voiceWorker === null || voiceWorker.isClosed()) {
+    // TODO: Implement multiple channels
+
+    if (voiceWorker === undefined || voiceWorker === null || voiceWorker.isClosed() || voiceWorker.getChannelID() != channelID) {
         let voiceInformation = await gatewayWorker.getVoiceInformation(serverID, channelID);
 
         // Setup VoiceWorker
 
-        voiceWorker = new VoiceWorker(voiceInformation);
+        voiceWorker = new VoiceWorker(voiceInformation, channelID);
 
         VoiceWorkerCache.add(serverID, voiceWorker);
 
     }
 
-    let searchResults = await YoutubeAPIHandler.search(req.body.data.name);
+    let searchResults = await YoutubeAPIHandler.search(req.body.data.options.find((a) => a.name == 'name').value);
 
     let audioHandler = voiceWorker.getAudioHandler();
 
-    new YoutubeFileQueueObject(searchResults.results[0]);
+    audioHandler.addToQueue(new YoutubeFileQueueObject(searchResults.results[0]));
 
     // audioHandler.addToQueue(new YoutubeFileQueueObject(searchResults.results[0]));
     audioHandler.addToQueue(new LocalFileQueueObject());

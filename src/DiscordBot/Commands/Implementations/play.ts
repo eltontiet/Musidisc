@@ -18,6 +18,8 @@ export default async function play(req, res) {
 
     let gatewayWorker = await GatewayWorkerCache.get("");
 
+    // TODO: change how channel is found to use the api call instead.
+
     let channelID = gatewayWorker.getUserChannel(req.body.member.user.id);
 
     let data = {
@@ -37,8 +39,11 @@ export default async function play(req, res) {
     let voiceWorker: VoiceWorker = VoiceWorkerCache.get(serverID);
 
     // TODO: Implement multiple channels
+    // ADD ERROR HANDLING
 
-    if (voiceWorker === undefined || voiceWorker === null || voiceWorker.isClosed() || voiceWorker.getChannelID() != channelID) {
+    // || voiceWorker.getChannelID() != channelID maybe swap or tell the user not in same channel as bot. Should check what channel the bot is in first tho
+
+    if (voiceWorker === undefined || voiceWorker === null || voiceWorker.isClosed()) {
         let voiceInformation = await gatewayWorker.getVoiceInformation(serverID, channelID);
 
         // Setup VoiceWorker
@@ -52,6 +57,10 @@ export default async function play(req, res) {
     let searchResults = await YoutubeAPIHandler.search(req.body.data.options.find((a) => a.name == 'name').value);
 
     let audioHandler = voiceWorker.getAudioHandler();
+
+    console.log(searchResults.results[0].id);
+    console.log(searchResults.results[0].title);
+    console.log(searchResults.results[0].length);
 
     audioHandler.addToQueue(new YoutubeFileQueueObject(searchResults.results[0]));
 

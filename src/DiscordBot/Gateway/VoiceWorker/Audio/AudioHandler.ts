@@ -10,11 +10,13 @@ interface AudioHandlerState {
     sequence: number;
     timestamp: number;
     opusStream: OpusStream;
+    skipped_packets: number;
 }
 
 const SILENCE_FRAME = Buffer.from([0xf8, 0xff, 0xfe]);
 
 // TODO: Add a way to destroy the queue and current song
+// TODO: Does not play on first call to play
 
 // TODO: I do not like how AudioHandler and VoiceWorker interact right now, maybe make VoiceWorker part of AudioHandler, and store AudioHandler in the cache
 export default class AudioHandler implements VoiceWorkerListener {
@@ -38,8 +40,10 @@ export default class AudioHandler implements VoiceWorkerListener {
             opusStream: undefined,
             playing: false,
             sequence: 0,
-            timestamp: 0
+            timestamp: 0,
+            skipped_packets: 0
         };
+        this.onReady = this.onReady.bind(this);
         voiceWorker.addListener(this);
     }
 
@@ -76,6 +80,11 @@ export default class AudioHandler implements VoiceWorkerListener {
 
         } else if (!this.state.opusStream.readable && this.state.playing) {
             debug_print("Data is not readable... skipping");
+            this.state.skipped_packets++;
+
+            if (this.state.skipped_packets > 50) {
+                this.finishSong();
+            }
             return; // Skip this iteration TODO: gracefully skip song if too many errors
         } else if (this.state.playing === true) {
             packet = this.state.opusStream.read();
@@ -85,13 +94,18 @@ export default class AudioHandler implements VoiceWorkerListener {
             if (this.queue.length > 0) {
                 this.playSong();
             } else {
-                this.voiceWorker.stopSpeaking();
+                this.finishSong();
             }
             return;
         }
 
         if (!packet) {
             console.error("Tried to play a null packet, skipping....");
+            this.state.skipped_packets++;
+
+            if (this.state.skipped_packets > 50) {
+                this.finishSong();
+            }
             return;
         }
 
@@ -100,7 +114,7 @@ export default class AudioHandler implements VoiceWorkerListener {
         this.state.timestamp += 960;
     }
 
-    private finishSong(e) {
+    private finishSong() {
         this.framesOfSilence = 5;
         this.state.playing = false;
         this.queue = this.queue.slice(1);

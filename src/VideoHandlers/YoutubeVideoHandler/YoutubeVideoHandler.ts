@@ -17,14 +17,20 @@ export async function downloadVideo(id: string, cookies?: string) {
         }
     } : undefined
 
+    let agent = ytdl.createAgent([]);
 
 
     let url = YOUTUBE_URL + id;
 
     // Get audio options
 
-    let info = await ytdl.getInfo(url);
-    let formats = ytdl.filterFormats(info.formats, 'audioonly');
+    let info = await ytdl.getInfo(url, { agent });
+    let formats;
+    try {
+        formats = ytdl.filterFormats(info.formats, 'audioonly');
+    } catch (e) {
+        formats = [];
+    }
     let format;
 
     if (formats.length === 0) { // If there are no audio only formats
@@ -42,8 +48,8 @@ export async function downloadVideo(id: string, cookies?: string) {
     return ytdl.downloadFromInfo(info,
         {
             format: format,
-            requestOptions: requestOptions
+            requestOptions: requestOptions,
+            agent
         });
-
 
 }

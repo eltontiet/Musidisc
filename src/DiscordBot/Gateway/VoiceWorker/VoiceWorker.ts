@@ -40,7 +40,7 @@ export default class VoiceWorker extends GatewayWorker {
         super(voiceInformation.endpoint, voiceInformation.server_id, voiceInformation);
         this.eventEmitter = new EventEmitter();
         this.ready = false;
-        this.channel_id = this.channel_id
+        this.channel_id = channelID;
     }
 
     override initProps(props: VoiceInformation): void {

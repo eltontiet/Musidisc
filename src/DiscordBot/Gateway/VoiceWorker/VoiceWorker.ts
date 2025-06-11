@@ -6,6 +6,8 @@ import WebSocket from "ws";
 import VoiceUDPHandler from "./VoiceUDPHandler"
 import AudioHandler from "./Audio/AudioHandler"
 import { EventEmitter } from 'events';
+import { GatewayWorkerCache } from "../GatewayWorkerCache";
+import { VoiceWorkerCache } from "./VoiceWorkerCache";
 
 export interface VoiceWorkerListener {
     onPlayed(e: Event): void;
@@ -31,6 +33,7 @@ export default class VoiceWorker extends GatewayWorker {
 
     private lastHeartbeat: number;
     private speaking: boolean;
+    private stopped: boolean;
 
     private eventEmitter: any | EventEmitter;
 
@@ -205,7 +208,35 @@ export default class VoiceWorker extends GatewayWorker {
     // TODO: Add kill here
     public override closeConnection() {
         super.closeConnection();
-        this.audioHandler.stop();
+
+        debug_print("Closing voice worker connection");
+
+        this.audioHandler.pause();
+        this.udpServer.closeConnection();
+
+
+        if (this.stopped) this.audioHandler.stop();
+
+        else { // Attempt to requeue a new gateway with the same audio handler
+
+            (async () => {
+                let gatewayWorker = await GatewayWorkerCache.get("");
+                let voiceInformation = await gatewayWorker.getVoiceInformation(this.serverID, this.channel_id);
+
+                // Setup VoiceWorker
+
+                let voiceWorker = new VoiceWorker(voiceInformation, this.channel_id);
+
+                VoiceWorkerCache.add(this.serverID, voiceWorker);
+
+                voiceWorker.setAudioHandler(this.audioHandler);
+                this.audioHandler.swapVoiceWorker(voiceWorker);
+            })()
+        }
+    }
+
+    public stop() {
+        this.stopped = true;
     }
 
     public getAudioHandler() {
@@ -214,6 +245,10 @@ export default class VoiceWorker extends GatewayWorker {
         }
 
         return this.audioHandler;
+    }
+
+    public setAudioHandler(audioHandler) {
+        this.audioHandler = audioHandler;
     }
 
     public addListener(observer: VoiceWorkerListener) {

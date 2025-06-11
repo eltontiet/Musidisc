@@ -4,6 +4,7 @@ import * as YoutubeVideo from '@VideoHandlers/YoutubeVideoHandler/YoutubeVideoHa
 import { Result } from "@customTypes/Results";
 import fs from 'fs';
 import { OpusStream } from "prism-media/typings/opus";
+import debug_print from "debug/debug";
 
 export default class YoutubeFileQueueObject implements QueueObject {
 
@@ -26,8 +27,22 @@ export default class YoutubeFileQueueObject implements QueueObject {
             ]
         })
 
+        let encoder = new prism.opus.Encoder({ rate: 48000, channels: 2, frameSize: 960 });
+
+        videoStream.on('error', (err) => encoder.emit('error', err));
+        transcoder.on('error', (err) => encoder.emit('error', err));
+
+        await new Promise<void>((res) => videoStream.on('progress',
+            (bytes_sent, bytes_downloaded, total_bytes) => {
+
+                // debug_print(`Progress: ${bytes_sent} - ${bytes_downloaded} - ${total_bytes}`);
+                // TODO: Do something with this in audiohandler
+
+                if (bytes_downloaded > 100000) res();
+            }));
+
         return videoStream.pipe(transcoder)
-            .pipe(new prism.opus.Encoder({ rate: 48000, channels: 2, frameSize: 960 }))
+            .pipe(encoder);
 
     }
 

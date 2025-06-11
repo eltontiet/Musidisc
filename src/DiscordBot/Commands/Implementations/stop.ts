@@ -30,6 +30,7 @@ export default async function stop(req, res) {
                 + `Closing the bot!`
         }
         gatewayWorker.disconnect(serverID);
+        voiceWorker.stop();
         voiceWorker.closeConnection();
         VoiceWorkerCache.remove(serverID);
     }

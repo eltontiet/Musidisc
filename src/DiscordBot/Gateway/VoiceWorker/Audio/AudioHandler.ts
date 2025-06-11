@@ -11,6 +11,7 @@ interface AudioHandlerState {
     timestamp: number;
     opusStream: OpusStream;
     skipped_packets: number;
+    paused: boolean;
 }
 
 const SILENCE_FRAME = Buffer.from([0xf8, 0xff, 0xfe]);
@@ -41,8 +42,15 @@ export default class AudioHandler implements VoiceWorkerListener {
             playing: false,
             sequence: 0,
             timestamp: 0,
-            skipped_packets: 0
+            skipped_packets: 0,
+            paused: false
         };
+        this.onReady = this.onReady.bind(this);
+        voiceWorker.addListener(this);
+    }
+
+    public swapVoiceWorker(voiceWorker: VoiceWorker) {
+        this.voiceWorker = voiceWorker;
         this.onReady = this.onReady.bind(this);
         voiceWorker.addListener(this);
     }
@@ -64,7 +72,10 @@ export default class AudioHandler implements VoiceWorkerListener {
 
             this.state.opusStream = await this.queue[0].getOpusResource();
             this.state.opusStream.on('end', this.finishSong.bind(this));
+            this.state.opusStream.on('error', this.songError.bind(this));
             this.state.playing = true;
+            this.state.paused = false;
+            this.state.skipped_packets = 0;
             this.playTimer = setInterval(this.sendNextPacket.bind(this), 20);
         }
     }
@@ -101,7 +112,7 @@ export default class AudioHandler implements VoiceWorkerListener {
 
         if (!packet) {
             console.error("Tried to play a null packet, skipping....");
-            this.state.skipped_packets++;
+            // this.state.skipped_packets++;
 
             if (this.state.skipped_packets > 50) {
                 this.finishSong();
@@ -127,6 +138,8 @@ export default class AudioHandler implements VoiceWorkerListener {
 
         if (this.shouldPlay) {
             this.playSong();
+        } else if (this.state.playing && this.state.paused) {
+            this.resume();
         }
     }
 
@@ -143,5 +156,22 @@ export default class AudioHandler implements VoiceWorkerListener {
         clearInterval(this.playTimer);
     }
 
+    private songError(e: Event) {
+        console.error(`Error handling stream: \n${e}`);
+        this.state.opusStream.destroy();
+        this.finishSong();
 
+        return;
+    }
+
+    public pause() {
+        this.state.paused = true;
+        clearInterval(this.playTimer)
+    }
+
+    public resume() {
+        this.state.paused = false;
+        this.voiceWorker.startSpeaking();
+        this.playTimer = setInterval(this.sendNextPacket.bind(this), 20);
+    }
 }

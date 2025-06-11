@@ -110,7 +110,11 @@ export default class VoiceUDPHandler {
     }
 
     public send(msg) {
-        this.server.send(msg, this.port, this.ip);
+        try {
+            this.server.send(msg, this.port, this.ip);
+        } catch (e) {
+            console.error(`Error sending message: \n${e}`);
+        }
     }
 
     public sendIPDiscovery(ssrc: number) {
@@ -182,5 +186,9 @@ export default class VoiceUDPHandler {
         this.recordFile.write(packet);
 
         return cipher;
+    }
+
+    public closeConnection() {
+        this.server.close();
     }
 }

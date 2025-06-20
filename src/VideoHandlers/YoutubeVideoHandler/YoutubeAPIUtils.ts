@@ -1,4 +1,5 @@
 import Time from "@customTypes/Time";
+import { Thumbnail, Thumbnails } from "@customTypes/Results";
 
 
 /**
@@ -20,4 +21,8 @@ export default function parseDuration(duration: string) {
 
     // Now at "T"
     index++;
+}
+
+export function getHighestResThumbnail(thumbnails: Thumbnails): Thumbnail {
+    return thumbnails.maxres ?? thumbnails.standard ?? thumbnails.high ?? thumbnails.medium ?? thumbnails.default;
 }

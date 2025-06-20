@@ -2,10 +2,13 @@ import { GatewayWorkerCache } from "DiscordBot/Gateway/GatewayWorkerCache";
 import VoiceWorker from "DiscordBot/Gateway/VoiceWorker/VoiceWorker";
 import { VoiceWorkerCache } from "DiscordBot/Gateway/VoiceWorker/VoiceWorkerCache";
 import debug_print from "debug/debug";
-import { ApplicationCommand, InteractionResponseType } from "discord.js";
+import { ApplicationCommand, ComponentType, InteractionResponseType, MessageFlags } from "discord.js";
 import * as YoutubeAPIHandler from "@VideoHandlers/YoutubeVideoHandler/YoutubeAPIHandler";
 import YoutubeFileQueueObject from "DiscordBot/Gateway/VoiceWorker/Audio/YoutubeFileQueueObject";
 import LocalFileQueueObject from "DiscordBot/Gateway/VoiceWorker/Audio/LocalFileQueueObject";
+import { editFollowupMessage, getVoiceInformation } from "DiscordBot/Services/DiscordAPIService";
+import { Component } from "@customTypes/DiscordCommand";
+import { getHighestResThumbnail } from "@VideoHandlers/YoutubeVideoHandler/YoutubeAPIUtils";
 
 var worker;
 
@@ -18,24 +21,36 @@ export default async function play(req, res) {
 
     let gatewayWorker = await GatewayWorkerCache.get("");
 
-    // TODO: change how channel is found to use the api call instead.
 
-    let channelID = gatewayWorker.getUserChannel(req.body.member.user.id);
-
-    let data = {
-        content: `Got play! Thanks for running the command <@${req.body.member.user.id}>\n` +
-            (channelID !== undefined && channelID !== null ? `Joining server with ID ${channelID}` :
-                `You're not in a server! Try rejoining if you are in one`)
-    }
-
-    res.status(200).send({
-        type: InteractionResponseType.ChannelMessageWithSource,
-        data: data
-    })
-
-    if (channelID === undefined || channelID === null) return;
+    // let channelID = gatewayWorker.getUserChannel(req.body.member.user.id); // LEGACY CODE
 
     let serverID = req.body.guild_id;
+    let channelID = (await getVoiceInformation(serverID, req.body.member.user.id)).channel_id;
+
+
+    let data = {
+        content: (channelID !== undefined && channelID !== null ? `Searching...` :
+            `You're not in a server! Try rejoining if you are in one`)
+    }
+
+    if (channelID === undefined || channelID === null) {
+        res.status(200).send({
+            type: InteractionResponseType.ChannelMessageWithSource,
+            data: data
+        })
+
+        return;
+
+    } else {
+        res.status(200).send({
+            type: InteractionResponseType.DeferredChannelMessageWithSource,
+            data: data
+        })
+    }
+
+    let token = req.body.token;
+
+
     let voiceWorker: VoiceWorker = VoiceWorkerCache.get(serverID);
 
     // TODO: Implement multiple channels
@@ -58,16 +73,46 @@ export default async function play(req, res) {
 
     let audioHandler = voiceWorker.getAudioHandler();
 
-    console.log(searchResults.results[0].id);
-    console.log(searchResults.results[0].title);
-    console.log(searchResults.results[0].length);
+    let result = searchResults.results[0];
 
-    audioHandler.addToQueue(new YoutubeFileQueueObject(searchResults.results[0]));
+    console.log(result.id);
+    console.log(result.title);
+    console.log(result.length);
 
-    // audioHandler.addToQueue(new YoutubeFileQueueObject(searchResults.results[0]));
-    // audioHandler.addToQueue(new LocalFileQueueObject());
-    // audioHandler.addToQueue(new LocalFileQueueObject());
-    // audioHandler.addToQueue(new LocalFileQueueObject());
+    audioHandler.addToQueue(new YoutubeFileQueueObject(result));
+
+    let queue = audioHandler.getQueue();
+
+
+
+    let thumbnail = getHighestResThumbnail(result.thumbnails);
+
+    let components: Component[] = [
+        {
+            type: ComponentType.Container,
+            components: [{
+                type: ComponentType.Section,
+                components: [{
+                    type: ComponentType.TextDisplay,
+                    content: `${queue.length == 1 ? "Now Playing" : "Added"} [${result.title}](https://www.youtu.be/${result.id})\n` +
+                        `by [${result.channelTitle}](https://youtube.com/channel/${result.channelID})` +
+                        `${queue.length == 1 ? "" : " to queue"}`,
+                }],
+                accessory: {
+                    type: ComponentType.Thumbnail,
+                    media: {
+                        url: thumbnail.url
+                    }
+                }
+            }]
+        }
+    ]
+
+    let followupResponse = await editFollowupMessage(token, { // For debugging
+        flags: MessageFlags.IsComponentsV2,
+        components: components
+    })
+
     // audioHandler.addToQueue(new LocalFileQueueObject());
     audioHandler.playSong();
     // TODO: Send music data

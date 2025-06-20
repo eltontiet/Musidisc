@@ -4,6 +4,7 @@ import QueueObject from './QueueObject';
 import debug_print from 'debug/debug';
 import { debug } from 'console';
 import { getRandomValues, randomBytes, randomInt, randomUUID } from 'crypto';
+import YoutubeFileQueueObject from './YoutubeFileQueueObject';
 
 interface AudioHandlerState {
     playing: boolean;
@@ -12,6 +13,7 @@ interface AudioHandlerState {
     opusStream: OpusStream;
     skipped_packets: number;
     paused: boolean;
+    current_time: number;
 }
 
 const SILENCE_FRAME = Buffer.from([0xf8, 0xff, 0xfe]);
@@ -43,7 +45,8 @@ export default class AudioHandler implements VoiceWorkerListener {
             sequence: 0,
             timestamp: 0,
             skipped_packets: 0,
-            paused: false
+            paused: false,
+            current_time: 0 // in milliseconds
         };
         this.onReady = this.onReady.bind(this);
         voiceWorker.addListener(this);
@@ -57,6 +60,10 @@ export default class AudioHandler implements VoiceWorkerListener {
 
     public addToQueue(song: QueueObject) {
         this.queue.push(song);
+    }
+
+    public getQueue() {
+        return this.queue;
     }
 
     public async playSong() {
@@ -73,9 +80,10 @@ export default class AudioHandler implements VoiceWorkerListener {
             this.state.opusStream = await this.queue[0].getOpusResource();
             this.state.opusStream.on('end', this.finishSong.bind(this));
             this.state.opusStream.on('error', this.songError.bind(this));
-            this.state.playing = true;
+            this.state.playing = true; // Reset state function
             this.state.paused = false;
             this.state.skipped_packets = 0;
+            this.state.current_time = 0;
             this.playTimer = setInterval(this.sendNextPacket.bind(this), 20);
         }
     }
@@ -123,6 +131,7 @@ export default class AudioHandler implements VoiceWorkerListener {
         this.voiceWorker.playPacket(packet, this.state.sequence, this.state.timestamp);
         this.state.sequence++;
         this.state.timestamp += 960;
+        this.state.current_time += 20; // by opus 20 milliseconds per packet
     }
 
     private finishSong() {
@@ -173,5 +182,21 @@ export default class AudioHandler implements VoiceWorkerListener {
         this.state.paused = false;
         this.voiceWorker.startSpeaking();
         this.playTimer = setInterval(this.sendNextPacket.bind(this), 20);
+    }
+
+    public skip() {
+        let currentSong = (this.queue[0] as YoutubeFileQueueObject).getResult();
+        this.state.opusStream.destroy();
+        this.finishSong();
+
+        return currentSong;
+    }
+
+    public getCurrentTime() {
+        return this.state.current_time;
+    }
+
+    public getCurrentSong() {
+        return (this.queue[0] as YoutubeFileQueueObject).getResult(); // TODO: MAKE THIS BETTER
     }
 }

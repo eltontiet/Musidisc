@@ -130,6 +130,9 @@ function parseSearchResults(searchResults, videoDetails, query: string): SearchR
             id: r.id.videoId,
             title: r.snippet.title,
             length: details.duration,
+            channelID: r.snippet.channelId,
+            channelTitle: r.snippet.channelTitle,
+            thumbnails: r.snippet.thumbnails,
         }
 
         parsedResults.results.push(result);

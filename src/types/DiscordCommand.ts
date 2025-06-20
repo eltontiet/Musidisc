@@ -1,4 +1,4 @@
-import { InteractionType } from "discord.js"
+import { InteractionType, User } from "discord.js"
 
 export default interface DiscordCommand {
     name: string,
@@ -58,4 +58,41 @@ export interface DiscordInteractionObject {
     application_id: string,
     type: InteractionType,
 
+}
+
+
+export interface VoiceState {
+    guild_id: string,
+    channel_id?: string,
+    user_id: string,
+    member?: Object, // guild member object: see https://discord.com/developers/docs/resources/guild#guild-member-object
+    session_id: string,
+    deaf: boolean,
+    mute: boolean,
+    self_deaf: boolean,
+    self_mute: boolean,
+    self_stream?: boolean,
+    self_video: boolean,
+    suppress: boolean,
+    request_to_speak_timestamp?: string // ISO8601 timestamp
+}
+
+export interface Message {
+    id: string,
+    channel_id: string,
+    author: User,
+    content: string,
+
+    // ...
+
+    components?: Object[], // array of component objects: https://discord.com/developers/docs/components/reference#component-object
+
+
+    [key: string]: any
+}
+
+export interface Component {
+    type: number,
+    id?: number,
+    [key: string]: unknown
 }

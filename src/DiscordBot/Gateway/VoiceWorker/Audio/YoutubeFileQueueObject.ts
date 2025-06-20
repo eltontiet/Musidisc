@@ -46,4 +46,8 @@ export default class YoutubeFileQueueObject implements QueueObject {
 
     }
 
+    public getResult() {
+        return this.result;
+    }
+
 }

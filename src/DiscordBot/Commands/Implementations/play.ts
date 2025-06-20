@@ -94,7 +94,7 @@ export default async function play(req, res) {
                 type: ComponentType.Section,
                 components: [{
                     type: ComponentType.TextDisplay,
-                    content: `${queue.length == 1 ? "Now Playing" : "Added"} [${result.title}](https://www.youtu.be/${result.id})\n` +
+                    content: `${queue.length == 1 ? "Now Playing" : "Added"} [${result.title}](https://www.youtu.be/${result.id}) ` +
                         `by [${result.channelTitle}](https://youtube.com/channel/${result.channelID})` +
                         `${queue.length == 1 ? "" : " to queue"}`,
                 }],

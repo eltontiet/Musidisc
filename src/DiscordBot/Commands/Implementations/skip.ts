@@ -52,7 +52,7 @@ export default async function skip(req, res) {
             type: ComponentType.Container,
             components: [{
                 type: ComponentType.TextDisplay,
-                content: `Skipped [${skipped_song.title}](https://www.youtu.be/${skipped_song.id}) ` +
+                content: `Skipped [${skipped_song.title}](https://youtu.be/${skipped_song.id}) ` +
                     `by [${skipped_song.channelTitle}](https://youtube.com/channel/${skipped_song.channelID})`
             }]
         }

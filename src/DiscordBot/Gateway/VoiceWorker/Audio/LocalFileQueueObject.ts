@@ -19,4 +19,8 @@ export default class LocalFileQueueObject implements QueueObject {
             .pipe(new prism.opus.Encoder({ rate: 48000, channels: 2, frameSize: 960 }));
     }
 
+    public async getOpusResourceAtTimestamp(millis: number) {
+        throw "Not implemented";
+    }
+
 }

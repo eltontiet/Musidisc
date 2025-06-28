@@ -1,13 +1,15 @@
 import config from '@config'
 import * as yth from '@VideoHandlers/YoutubeVideoHandler/YoutubeAPIHandler'
 import * as YoutubeVideo from '@VideoHandlers/YoutubeVideoHandler/YoutubeVideoHandler'
-import { debug_properties } from 'debug/debug'
+import { debug_properties, getDebugLevel } from 'debug/debug'
 import StartBot from 'DiscordBot/Musidisc'
 import prism from 'prism-media';
 import fs from 'fs';
 
 process.argv.forEach((val, index) => {
     if (val === "-D") debug_properties.flag = true;
+    if (val === "-L") var level_index = index + 1;
+    if (level_index == index) debug_properties.level = getDebugLevel(val);
 })
 
 // fs.createReadStream("./tmp/spying.opus")

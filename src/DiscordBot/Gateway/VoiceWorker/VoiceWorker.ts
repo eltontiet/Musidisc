@@ -1,7 +1,7 @@
 import VoiceInformation from "@customTypes/VoiceInformation";
 import GatewayWorker from "../GatewayWorker";
 import { VoiceOpcodes } from "@customTypes/VoiceOpcodes";
-import debug_print from "debug/debug";
+import debug_print, { DebugLevels } from "debug/debug";
 import WebSocket from "ws";
 import VoiceUDPHandler from "./VoiceUDPHandler"
 import AudioHandler from "./Audio/AudioHandler"
@@ -43,6 +43,7 @@ export default class VoiceWorker extends GatewayWorker {
         super(voiceInformation.endpoint, voiceInformation.server_id, voiceInformation);
         this.eventEmitter = new EventEmitter();
         this.ready = false;
+        this.stopped = false;
         this.channel_id = channelID;
     }
 
@@ -69,7 +70,7 @@ export default class VoiceWorker extends GatewayWorker {
     protected addMessageHandlers(): void {
         debug_print("Set VoiceWorker message handlers")
         this.websocket.on('message', (data) => {
-            console.log(`Got message ${data}`);
+            debug_print(`Got message ${data}`, DebugLevels.DEBUG);
 
             let json = JSON.parse(data.toString());
 

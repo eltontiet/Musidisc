@@ -8,7 +8,7 @@ const YOUTUBE_URL = "http://www.youtube.com/watch?v="
 
 const TEMP_FOLDER = path.join(process.cwd() + "/tmp");
 
-export async function downloadVideo(id: string, cookies?: string) {
+export async function downloadVideo(id: string, timestamp: number = 0, cookies?: string) {
     if (!fs.existsSync(TEMP_FOLDER)) fs.mkdirSync(TEMP_FOLDER);
 
     let requestOptions = cookies ? {
@@ -49,7 +49,11 @@ export async function downloadVideo(id: string, cookies?: string) {
         {
             format: format,
             requestOptions: requestOptions,
-            agent
+            dlChunkSize: 0,
+            begin: timestamp,
+            liveBuffer: 5000,
+            agent,
+
         });
 
 }

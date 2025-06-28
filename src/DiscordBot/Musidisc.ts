@@ -47,8 +47,7 @@ function configureEndpoints() {
 
             let commandName = req.body.data.name;
 
-            console.log(commands)
-            console.log(commandName)
+            debug_print(commands)
 
             return commands[commandName](req, res);
 

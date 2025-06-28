@@ -8,4 +8,6 @@ export default interface QueueObject {
     }
 
     getOpusResource(): Promise<OpusStream>;
+
+    getOpusResourceAtTimestamp(millis: number);
 }

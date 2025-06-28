@@ -1,4 +1,4 @@
-import debug_print from "debug/debug";
+import debug_print, { DebugLevels } from "debug/debug";
 import { GatewayIntentBits, GatewayOpcodes } from "discord.js";
 import WebSocket from "ws";
 import config from "@config"
@@ -74,6 +74,8 @@ export default class GatewayWorker {
                 console.log("Connection Closed")
             }
         })
+
+        this.websocket.on('error', (e) => console.error(e));
     }
 
     protected sendIdentify() {
@@ -112,7 +114,7 @@ export default class GatewayWorker {
 
     protected addMessageHandlers() {
         this.websocket.on('message', (data) => {
-            console.log(`Got message ${data}`);
+            debug_print(`Got message ${data}`, DebugLevels.DEBUG);
 
             let json = JSON.parse(data.toString());
 
@@ -139,7 +141,7 @@ export default class GatewayWorker {
 
     protected heartbeat(timeout: number) {
         setTimeout(() => {
-            debug_print("Sending heartbeat")
+            debug_print("Sending heartbeat", DebugLevels.DEBUG)
             this.sendHeartbeat();
 
             if (this.heartbeatsSinceResponse < 2 && !this.closed) {
@@ -170,7 +172,7 @@ export default class GatewayWorker {
             this.application = json.d.application
             return;
         } else if (json.t === "VOICE_STATE_UPDATE") {
-            debug_print("Detected user voice state change");
+            debug_print("Detected user voice state change", DebugLevels.DEBUG);
             this.users[json.d.member.user.id] = { channel_id: json.d.channel_id, id: json.d.member.user.id, username: json.d.member.user.username };
 
             console.log(this.users[json.d.member.user.id]);

@@ -9,6 +9,8 @@ import LocalFileQueueObject from "DiscordBot/Gateway/VoiceWorker/Audio/LocalFile
 import { editFollowupMessage, getVoiceInformation } from "DiscordBot/Services/DiscordAPIService";
 import { Component } from "@customTypes/DiscordCommand";
 import { getHighestResThumbnail } from "@VideoHandlers/YoutubeVideoHandler/YoutubeAPIUtils";
+import moment from "moment";
+import { formatTimeFromMillis } from "DiscordBot/Util/time";
 
 var worker;
 
@@ -83,7 +85,8 @@ export default async function play(req, res) {
 
     let queue = audioHandler.getQueue();
 
-
+    let duration = moment.duration(result.length);
+    let length = formatTimeFromMillis(duration.asMilliseconds());
 
     let thumbnail = getHighestResThumbnail(result.thumbnails);
 
@@ -94,9 +97,10 @@ export default async function play(req, res) {
                 type: ComponentType.Section,
                 components: [{
                     type: ComponentType.TextDisplay,
-                    content: `${queue.length == 1 ? "Now Playing" : "Added"} [${result.title}](https://www.youtu.be/${result.id}) ` +
+                    content: `${queue.length == 1 ? "Now Playing" : "Added"} [${result.title}](https://youtu.be/${result.id}) ` +
                         `by [${result.channelTitle}](https://youtube.com/channel/${result.channelID})` +
-                        `${queue.length == 1 ? "" : " to queue"}`,
+                        `${queue.length == 1 ? "" : " to queue"}` +
+                        ` ${length}`,
                 }],
                 accessory: {
                     type: ComponentType.Thumbnail,

@@ -99,11 +99,7 @@ export default class AudioHandler implements VoiceWorkerListener {
 
         } else if (!this.state.opusStream.readable && this.state.playing) {
             debug_print("Data is not readable... skipping");
-            this.state.skipped_packets++;
 
-            if (this.state.skipped_packets > 50) {
-                this.finishSong();
-            }
             return; // Skip this iteration TODO: gracefully skip song if too many errors
         } else if (this.state.playing === true) {
             packet = this.state.opusStream.read();
@@ -119,10 +115,12 @@ export default class AudioHandler implements VoiceWorkerListener {
         }
 
         if (!packet) {
-            console.error("Tried to play a null packet, skipping....");
-            // this.state.skipped_packets++;
+            // console.error("Tried to play a null packet, skipping....");
+            if (this.state.current_time > 0)
+                this.state.skipped_packets++;
 
             if (this.state.skipped_packets > 50) {
+                // this.tryResetSong();
                 this.finishSong();
             }
             return;
@@ -167,6 +165,8 @@ export default class AudioHandler implements VoiceWorkerListener {
 
     private songError(e: Event) {
         console.error(`Error handling stream: \n${e}`);
+        // this.tryResetSong();
+
         this.state.opusStream.destroy();
         this.finishSong();
 
@@ -175,6 +175,7 @@ export default class AudioHandler implements VoiceWorkerListener {
 
     public pause() {
         this.state.paused = true;
+        this.voiceWorker.stopSpeaking();
         clearInterval(this.playTimer)
     }
 
@@ -197,6 +198,22 @@ export default class AudioHandler implements VoiceWorkerListener {
     }
 
     public getCurrentSong() {
-        return (this.queue[0] as YoutubeFileQueueObject).getResult(); // TODO: MAKE THIS BETTER
+        return (this.queue[0] as YoutubeFileQueueObject)?.getResult(); // TODO: MAKE THIS BETTER
+    }
+
+    private async tryResetSong() {
+
+        console.error("Error with song, creating new stream");
+
+        this.state.opusStream.destroy();
+        this.pause();
+
+        let current_time = this.state.current_time;
+
+        this.state.opusStream = await this.queue[0].getOpusResourceAtTimestamp(current_time);
+        this.state.opusStream.on('end', this.finishSong.bind(this));
+        this.state.opusStream.on('error', this.songError.bind(this));
+
+        this.resume();
     }
 }

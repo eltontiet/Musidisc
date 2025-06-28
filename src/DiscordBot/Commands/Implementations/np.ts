@@ -6,6 +6,8 @@ import { createFollowupMessage, editFollowupMessage, getVoiceInformation } from 
 import { Component } from "@customTypes/DiscordCommand";
 import { Result } from "@customTypes/Results";
 import { getHighestResThumbnail } from "@VideoHandlers/YoutubeVideoHandler/YoutubeAPIUtils";
+import moment from "moment";
+import { formatTimeFromMillis } from "DiscordBot/Util/time";
 
 
 var worker;
@@ -52,8 +54,20 @@ export default async function np(req, res) {
     let audioHandler = voiceWorker.getAudioHandler();
 
     let result: Result = audioHandler.getCurrentSong();
+    if (!result) {
+        let followupResponse = await editFollowupMessage(token, { // For debugging
+            content: "No songs in queue!"
+        })
+        return;
+    }
 
     let thumbnail = getHighestResThumbnail(result.thumbnails);
+
+    let current_time = formatTimeFromMillis(audioHandler.getCurrentTime());
+
+    let duration = moment.duration(result.length);
+    let length = formatTimeFromMillis(duration.asMilliseconds());
+
 
     // TODO: have a text formattor to have a max width of container
 
@@ -64,8 +78,8 @@ export default async function np(req, res) {
                 type: ComponentType.Section,
                 components: [{
                     type: ComponentType.TextDisplay,
-                    content: `Now Playing [${result.title}](https://youtu.be/${result.id}) by [${result.channelTitle}](https://youtube.com/channel/${result.channelID})\n` +
-                        `${audioHandler.getCurrentTime()}/${result.length}`,
+                    content: `Now Playing[${result.title}](https://youtu.be/${result.id}) by [${result.channelTitle}](https://youtube.com/channel/${result.channelID})\n` +
+                        `${current_time}/${length}`,
                 }],
                 accessory: {
                     type: ComponentType.Thumbnail,

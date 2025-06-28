@@ -5,6 +5,8 @@ import { VoiceUDPState } from './VoiceUDPState';
 import libsodium from 'libsodium-wrappers';
 import fs, { WriteStream } from 'fs';
 
+var current_port = 49152;
+
 export default class VoiceUDPHandler {
 
     private server: dgram.Socket;
@@ -26,7 +28,10 @@ export default class VoiceUDPHandler {
         this.setupListeners();
         this.ip = ip;
         this.port = port;
-        this.server.bind(port);
+        this.server.bind(current_port);
+        current_port++;
+        if (port > 65535) port = 49152;
+
         this.state = VoiceUDPState.INIT
         this.recordFile = fs.createWriteStream('tmp/spying.opus');
 

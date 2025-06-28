@@ -5,6 +5,7 @@ import { Result } from "@customTypes/Results";
 import fs from 'fs';
 import { OpusStream } from "prism-media/typings/opus";
 import debug_print from "debug/debug";
+import { timeStamp } from "console";
 
 export default class YoutubeFileQueueObject implements QueueObject {
 
@@ -18,6 +19,20 @@ export default class YoutubeFileQueueObject implements QueueObject {
 
     public async getOpusResource() {
         let videoStream = await YoutubeVideo.downloadVideo(this.result.id);
+        return this.handleStream(videoStream);
+
+    }
+
+    public getResult() {
+        return this.result;
+    }
+
+    public async getOpusResourceAtTimestamp(millis: number) {
+        let videoStream = await YoutubeVideo.downloadVideo(this.result.id, millis);
+        return this.handleStream(videoStream);
+    }
+
+    private async handleStream(videoStream) {
         let transcoder = new prism.FFmpeg({
             args: [
                 '-analyzeduration', '0',
@@ -43,11 +58,5 @@ export default class YoutubeFileQueueObject implements QueueObject {
 
         return videoStream.pipe(transcoder)
             .pipe(encoder);
-
     }
-
-    public getResult() {
-        return this.result;
-    }
-
 }

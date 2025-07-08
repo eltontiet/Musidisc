@@ -1,7 +1,7 @@
 import ytdl from '@distube/ytdl-core'
 import fs from 'fs'
 import path from 'path'
-import debug_print from 'debug/debug'
+import debug_print, { DebugLevels } from 'debug/debug'
 
 
 const YOUTUBE_URL = "http://www.youtube.com/watch?v="
@@ -34,9 +34,15 @@ export async function downloadVideo(id: string, timestamp: number = 0, cookies?:
     let format;
 
     if (formats.length === 0) { // If there are no audio only formats
-        format = ytdl.chooseFormat(info.formats, { quality: 'highestaudio' });
+        format = ytdl.chooseFormat(info.formats, {
+            quality: 'highestaudio',
+            filter: format => !((format as any).isDrc) // TODO: weird, (use different library?) isDrc is a thing but not in the library
+        });
     } else { // Otherwise choose the best audioonly format
-        format = ytdl.chooseFormat(formats, { quality: 'highestaudio' });
+        format = ytdl.chooseFormat(formats, {
+            quality: 'highestaudio',
+            filter: format => !((format as any).isDrc) // TODO: weird, (use different library?) isDrc is a thing but not in the library });
+        });
     }
 
     debug_print(format.container);

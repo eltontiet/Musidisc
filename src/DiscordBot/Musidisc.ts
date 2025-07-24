@@ -1,11 +1,12 @@
-import debug_print from "debug/debug";
+import debug_print, { DebugLevels } from "debug/debug";
 import { InteractionResponseType, InteractionType, time } from "discord.js";
 import express from "express"
-import { verifyKeyMiddleware } from "discord-interactions";
+import { MessageComponentTypes, verifyKeyMiddleware } from "discord-interactions";
 import config from '@config';
 import fs from 'fs';
 import path from 'path'
 import { GatewayWorkerCache } from "./Gateway/GatewayWorkerCache";
+import handleButtonInteraction from "./Commands/Handlers/ButtonHandler";
 
 const app = express();
 const port = 3000;
@@ -33,17 +34,17 @@ function configureMiddleware() {
 function configureEndpoints() {
 
     app.post('/interactions', verifyKeyMiddleware(config.DISCORD_PUBLIC_KEY), async (req, res) => {
-        debug_print("Recieved post at '/interactions'");
+        debug_print("Received post at '/interactions'");
 
         if (req.body["type"] === InteractionType.Ping) {
-            console.log("Recieved Ping!")
+            console.log("Received Ping!")
             return res.status(200).send({
                 "type": InteractionResponseType.Pong
             })
         }
 
         if (req.body.type === InteractionType.ApplicationCommand) {
-            console.log(`Recieved command ${req.body.data.name}`);
+            console.log(`Received command ${req.body.data.name}`);
 
             let commandName = req.body.data.name;
 
@@ -52,6 +53,21 @@ function configureEndpoints() {
             return commands[commandName](req, res);
 
 
+        }
+
+        if (req.body.type === InteractionType.MessageComponent) {
+            let type = req.body.data.component_type;
+
+            debug_print(`Received message interaction of type: ${type}`, DebugLevels.INFO);
+
+            switch (type) {
+                case MessageComponentTypes.BUTTON:
+                    handleButtonInteraction(req, res);
+                    break;
+                default:
+                    debug_print(`No handler for this message interaction type`, DebugLevels.INFO)
+                    return;
+            }
         }
     })
 }

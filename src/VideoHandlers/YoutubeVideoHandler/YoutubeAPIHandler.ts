@@ -6,7 +6,7 @@ const YOUTUBE_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search?"
 const YOUTUBE_SEARCH_PARAMETERS = {
     part: "snippet",
     key: config.YOUTUBE_API_KEY,
-    maxResults: "10",
+    maxResults: "5",
     order: "relevance",
     type: "video",
 
@@ -22,7 +22,7 @@ const YOUTUBE_VIDEO_LIST_URL = "https://www.googleapis.com/youtube/v3/videos?"
 const YOUTUBE_VIDEO_LIST_PARAMETERS = {
     part: "contentDetails",
     key: config.YOUTUBE_API_KEY,
-    maxResults: "10",
+    maxResults: "5",
 }
 
 const YOUTUBE_VIDEO_LIST_REQUEST_OPTIONS = {
@@ -31,12 +31,12 @@ const YOUTUBE_VIDEO_LIST_REQUEST_OPTIONS = {
 }
 
 export async function search(query: string, pageToken?: string): Promise<SearchResults> {
-    let parameters = YOUTUBE_SEARCH_PARAMETERS;
-    parameters["q"] = query;
+    let parameters = new URLSearchParams(YOUTUBE_SEARCH_PARAMETERS);
+    parameters.append("q", query);
 
-    if (pageToken !== undefined && pageToken !== null) parameters["pageToken"] = pageToken;
+    if (pageToken !== undefined && pageToken !== null) parameters.append("pageToken", pageToken);
 
-    let searchResults = await doFetch(YOUTUBE_SEARCH_URL + new URLSearchParams(parameters), YOUTUBE_SEARCH_REQUEST_OPTIONS)
+    let searchResults = await doFetch(YOUTUBE_SEARCH_URL + parameters, YOUTUBE_SEARCH_REQUEST_OPTIONS)
 
 
     let videoDetails = await getVideoDetails(searchResults);

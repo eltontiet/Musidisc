@@ -127,8 +127,17 @@ export default class AudioHandler implements VoiceWorkerListener {
         }
 
         this.voiceWorker.playPacket(packet, this.state.sequence, this.state.timestamp);
+
         this.state.sequence++;
+        if (this.state.sequence > 2 ** 16 - 1) {
+            this.state.sequence = 0;
+        }
+
         this.state.timestamp += 960;
+        if (this.state.timestamp > 2 ** 32 - 1) {
+            this.state.timestamp = 0;
+        }
+
         this.state.current_time += 20; // by opus 20 milliseconds per packet
     }
 

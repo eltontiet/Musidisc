@@ -2,7 +2,7 @@ import VoiceWorker from "DiscordBot/Gateway/VoiceWorker/VoiceWorker";
 import { VoiceWorkerCache } from "DiscordBot/Gateway/VoiceWorker/VoiceWorkerCache";
 import debug_print from "debug/debug";
 import { ApplicationCommand, ComponentType, InteractionResponseType, MessageFlags } from "discord.js";
-import { createFollowupMessage, editFollowupMessage, getVoiceInformation } from "DiscordBot/Services/DiscordAPIService";
+import { editFollowupMessage, getVoiceInformation } from "DiscordBot/Services/DiscordAPIService";
 import { Component } from "@customTypes/DiscordCommand";
 import { Result } from "@customTypes/Results";
 import { getHighestResThumbnail } from "@VideoHandlers/YoutubeVideoHandler/YoutubeAPIUtils";

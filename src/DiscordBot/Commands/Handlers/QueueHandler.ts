@@ -1,7 +1,7 @@
 import { Component } from "@customTypes/DiscordCommand";
 import { Result } from "@customTypes/Results";
 import { getHighestResThumbnail } from "@VideoHandlers/YoutubeVideoHandler/YoutubeAPIUtils";
-import { InteractionResponseType, ComponentType, MessageFlags } from "discord.js";
+import { ComponentType, MessageFlags } from "discord.js";
 import { GatewayWorkerCache } from "DiscordBot/Gateway/GatewayWorkerCache";
 import YoutubeFileQueueObject from "DiscordBot/Gateway/VoiceWorker/Audio/YoutubeFileQueueObject";
 import VoiceWorker from "DiscordBot/Gateway/VoiceWorker/VoiceWorker";
@@ -10,6 +10,13 @@ import { getVoiceInformation, editFollowupMessage } from "DiscordBot/Services/Di
 import { formatTimeFromMillis } from "DiscordBot/Util/time";
 import moment from "moment";
 
+
+// TODO: This does way too much in one function
+/**
+ * Adds the Result object to the audiohandler for the requests channel. This will create
+ * an audiohandler and voiceworker as needed
+ * @param result 
+ */
 export default async function addResultToQueue(req, res, result: Result) {
 
     let gatewayWorker = await GatewayWorkerCache.get("");

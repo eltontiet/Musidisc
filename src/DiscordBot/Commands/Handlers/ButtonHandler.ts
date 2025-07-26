@@ -1,5 +1,6 @@
 import debug_print, { DebugLevels } from "debug/debug";
 import { handle_search_callback, handle_select_result_callback } from "../Implementations/search";
+import { handle_queue_callback } from "../Implementations/queue";
 
 
 /**
@@ -24,6 +25,9 @@ export default function handleButtonInteraction(req, res) {
             break;
         case "result":
             handle_select_result_callback(req, res);
+            break;
+        case "queue":
+            handle_queue_callback(req, res);
             break;
     }
 

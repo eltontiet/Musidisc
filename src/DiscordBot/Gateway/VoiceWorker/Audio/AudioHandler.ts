@@ -2,8 +2,6 @@ import { OpusStream } from 'prism-media/typings/opus';
 import VoiceWorker, { VoiceWorkerListener } from '../VoiceWorker'
 import QueueObject from './QueueObject';
 import debug_print from 'debug/debug';
-import { debug } from 'console';
-import { getRandomValues, randomBytes, randomInt, randomUUID } from 'crypto';
 import YoutubeFileQueueObject from './YoutubeFileQueueObject';
 
 interface AudioHandlerState {
@@ -14,6 +12,7 @@ interface AudioHandlerState {
     skipped_packets: number;
     paused: boolean;
     current_time: number;
+    current_song: QueueObject;
 }
 
 const SILENCE_FRAME = Buffer.from([0xf8, 0xff, 0xfe]);
@@ -46,7 +45,8 @@ export default class AudioHandler implements VoiceWorkerListener {
             timestamp: 0,
             skipped_packets: 0,
             paused: false,
-            current_time: 0 // in milliseconds
+            current_time: 0, // in milliseconds
+            current_song: undefined
         };
         this.onReady = this.onReady.bind(this);
         voiceWorker.addListener(this);
@@ -76,12 +76,12 @@ export default class AudioHandler implements VoiceWorkerListener {
 
             this.voiceWorker.startSpeaking();
 
-
-            this.state.opusStream = await this.queue[0].getOpusResource();
-            this.state.opusStream.on('end', this.finishSong.bind(this));
-            this.state.opusStream.on('error', this.songError.bind(this));
             this.state.playing = true; // Reset state function
             this.state.paused = false;
+            this.state.current_song = this.queue.shift();
+            this.state.opusStream = await this.state.current_song.getOpusResource();
+            this.state.opusStream.on('end', this.finishSong.bind(this));
+            this.state.opusStream.on('error', this.songError.bind(this));
             this.state.skipped_packets = 0;
             this.state.current_time = 0;
             this.playTimer = setInterval(this.sendNextPacket.bind(this), 20);
@@ -108,8 +108,6 @@ export default class AudioHandler implements VoiceWorkerListener {
             clearInterval(this.playTimer);
             if (this.queue.length > 0) {
                 this.playSong();
-            } else {
-                this.finishSong();
             }
             return;
         }
@@ -144,7 +142,7 @@ export default class AudioHandler implements VoiceWorkerListener {
     private finishSong() {
         this.framesOfSilence = 5;
         this.state.playing = false;
-        this.queue = this.queue.slice(1);
+        this.state.current_song = undefined;
 
         this.voiceWorker.stopSpeaking();
     }
@@ -224,5 +222,9 @@ export default class AudioHandler implements VoiceWorkerListener {
         this.state.opusStream.on('error', this.songError.bind(this));
 
         this.resume();
+    }
+
+    public isPaused() {
+        return this.state.paused;
     }
 }

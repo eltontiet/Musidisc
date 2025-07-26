@@ -1,13 +1,16 @@
 import { OpusStream } from "prism-media/typings/opus"
 
-export default interface QueueObject {
+export default abstract class QueueObject {
+
+    id: string = crypto.randomUUID();
+
 
     DISCORD_CONSTANTS: {
         BITRATE: 48000,
         CHANNELS: 2
     }
 
-    getOpusResource(): Promise<OpusStream>;
+    abstract getOpusResource(): Promise<OpusStream>;
 
-    getOpusResourceAtTimestamp(millis: number);
+    abstract getOpusResourceAtTimestamp(millis: number);
 }

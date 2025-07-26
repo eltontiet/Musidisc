@@ -270,6 +270,10 @@ export default class VoiceWorker extends GatewayWorker {
         return this.channel_id;
     }
 
+    public getUserID(): string {
+        return this.user_id;
+    }
+
     /** 
      * 
      * TODO NEXT:

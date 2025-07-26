@@ -1,18 +1,11 @@
-import { GatewayWorkerCache } from "DiscordBot/Gateway/GatewayWorkerCache";
-import VoiceWorker from "DiscordBot/Gateway/VoiceWorker/VoiceWorker";
-import { VoiceWorkerCache } from "DiscordBot/Gateway/VoiceWorker/VoiceWorkerCache";
 import debug_print, { DebugLevels } from "debug/debug";
-import { ApplicationCommand, ButtonStyle, ComponentType, InteractionResponseType, MessageFlags } from "discord.js";
+import { ButtonStyle, ComponentType, InteractionResponseType, MessageFlags } from "discord.js";
 import * as YoutubeAPIHandler from "@VideoHandlers/YoutubeVideoHandler/YoutubeAPIHandler";
-import YoutubeFileQueueObject from "DiscordBot/Gateway/VoiceWorker/Audio/YoutubeFileQueueObject";
-import LocalFileQueueObject from "DiscordBot/Gateway/VoiceWorker/Audio/LocalFileQueueObject";
 import { editFollowupMessage, getVoiceInformation } from "DiscordBot/Services/DiscordAPIService";
 import { Component } from "@customTypes/DiscordCommand";
-import { getHighestResThumbnail } from "@VideoHandlers/YoutubeVideoHandler/YoutubeAPIUtils";
 import moment from "moment";
 import { formatTimeFromMillis } from "DiscordBot/Util/time";
 import SearchResults, { Result } from "@customTypes/Results";
-import { Section } from "discord-interactions";
 import { SearchResultsCache } from "DiscordBot/Util/Caches";
 import addResultToQueue from "../Handlers/QueueHandler";
 
@@ -150,7 +143,7 @@ export async function handle_select_result_callback(req, res) {
 
     if (result === null || result === undefined) {
         res.status(200).send({
-            type: InteractionResponseType.UpdateMessage,
+            type: InteractionResponseType.ChannelMessageWithSource,
             data: {
                 content: `The request timed out! Try sending a new one!`,
                 flags: MessageFlags.Ephemeral
@@ -162,7 +155,7 @@ export async function handle_select_result_callback(req, res) {
     else if (channelID === undefined || channelID === null) {
 
         res.status(200).send({
-            type: InteractionResponseType.UpdateMessage,
+            type: InteractionResponseType.ChannelMessageWithSource,
             data: {
                 content: `You're not in a server! Try rejoining if you are in one!`,
                 flags: MessageFlags.Ephemeral

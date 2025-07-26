@@ -1,10 +1,8 @@
 import QueueObject from "./QueueObject";
 import fs from 'fs';
 import prism from 'prism-media';
-import { OpusStream } from "prism-media/typings/opus";
-import opus from "@discordjs/opus";
 
-export default class LocalFileQueueObject implements QueueObject {
+export default class LocalFileQueueObject extends QueueObject {
     DISCORD_CONSTANTS: { BITRATE: 48000; CHANNELS: 2; };
 
     public async getOpusResource() {

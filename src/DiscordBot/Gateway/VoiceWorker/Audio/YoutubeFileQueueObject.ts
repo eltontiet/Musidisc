@@ -1,17 +1,14 @@
 import QueueObject from "./QueueObject";
-import prism, { opus } from 'prism-media'
+import prism from 'prism-media'
 import * as YoutubeVideo from '@VideoHandlers/YoutubeVideoHandler/YoutubeVideoHandler'
 import { Result } from "@customTypes/Results";
-import fs from 'fs';
-import { OpusStream } from "prism-media/typings/opus";
-import debug_print from "debug/debug";
-import { timeStamp } from "console";
 
-export default class YoutubeFileQueueObject implements QueueObject {
+export default class YoutubeFileQueueObject extends QueueObject {
 
     private result: Result;
 
     constructor(searchResult: Result) {
+        super();
         this.result = searchResult;
     }
 

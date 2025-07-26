@@ -1,3 +1,4 @@
+import { QueueRequest } from "@customTypes/CommandState";
 import SearchResults, { Result } from "@customTypes/Results";
 
 class SimpleCache<Val> { // Using generic key would not allow the cache to be assigned to {}
@@ -30,4 +31,6 @@ class SimpleCache<Val> { // Using generic key would not allow the cache to be as
 }
 
 export var SearchResultsCache: SimpleCache<SearchResults> = new SimpleCache();
+
+export var QueueRequestCache: SimpleCache<QueueRequest> = new SimpleCache();
 

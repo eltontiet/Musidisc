@@ -1,3 +1,4 @@
+import QueueObject from "DiscordBot/Gateway/VoiceWorker/Audio/QueueObject"
 import { Result } from "./Results"
 
 export interface CommandState {
@@ -12,4 +13,9 @@ export interface CommandData {
 
 export interface SearchCommandData extends CommandData {
     result: Result
+}
+
+export interface QueueRequest {
+    queue: QueueObject[],
+    current_page: number
 }

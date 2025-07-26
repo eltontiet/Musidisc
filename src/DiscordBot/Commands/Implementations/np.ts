@@ -78,7 +78,7 @@ export default async function np(req, res) {
                 type: ComponentType.Section,
                 components: [{
                     type: ComponentType.TextDisplay,
-                    content: `Now Playing[${result.title}](https://youtu.be/${result.id}) by [${result.channelTitle}](https://youtube.com/channel/${result.channelID})\n` +
+                    content: `Now Playing [${result.title}](https://youtu.be/${result.id}) by [${result.channelTitle}](https://youtube.com/channel/${result.channelID})\n` +
                         `${current_time}/${length}`,
                 }],
                 accessory: {

@@ -193,7 +193,7 @@ export default class AudioHandler implements VoiceWorkerListener {
     }
 
     public skip() {
-        let currentSong = (this.queue[0] as YoutubeFileQueueObject).getResult();
+        let currentSong = (this.state.current_song as YoutubeFileQueueObject).getResult();
         this.state.opusStream.destroy();
         this.finishSong();
 
@@ -205,7 +205,7 @@ export default class AudioHandler implements VoiceWorkerListener {
     }
 
     public getCurrentSong() {
-        return (this.queue[0] as YoutubeFileQueueObject)?.getResult(); // TODO: MAKE THIS BETTER
+        return (this.state.current_song as YoutubeFileQueueObject)?.getResult(); // TODO: MAKE THIS BETTER
     }
 
     private async tryResetSong() {
@@ -217,7 +217,7 @@ export default class AudioHandler implements VoiceWorkerListener {
 
         let current_time = this.state.current_time;
 
-        this.state.opusStream = await this.queue[0].getOpusResourceAtTimestamp(current_time);
+        this.state.opusStream = await this.state.current_song.getOpusResourceAtTimestamp(current_time);
         this.state.opusStream.on('end', this.finishSong.bind(this));
         this.state.opusStream.on('error', this.songError.bind(this));
 

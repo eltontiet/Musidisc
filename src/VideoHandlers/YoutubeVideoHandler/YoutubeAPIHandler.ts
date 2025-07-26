@@ -77,6 +77,7 @@ async function doFetch(url: string, requestOptions): Promise<Object> {
     } catch (e) {
         if (e.status == 403) {
             console.error("Request Forbidden: Check that the api key is correct and try again");
+            console.error(e.statusText);
             return null;
         } else {
             console.error("An unexpected error has occurred");

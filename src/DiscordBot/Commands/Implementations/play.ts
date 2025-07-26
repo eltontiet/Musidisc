@@ -34,7 +34,17 @@ export default async function play(req, res) {
         })
     }
 
-    let searchResults = await YoutubeAPIHandler.search(req.body.data.options.find((a) => a.name == 'name').value);
+    let searchResults;
+
+    try {
+        searchResults = await YoutubeAPIHandler.search(req.body.data.options.find((a) => a.name == 'name').value);
+    } catch (e) {
+        debug_print(`There was an error fetching from the youtube api: ${e}`);
+
+        // TODO: Send error through discord
+        return;
+    }
+
     let result = searchResults.results[0];
 
     addResultToQueue(req, res, result);

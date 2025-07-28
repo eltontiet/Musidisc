@@ -119,7 +119,7 @@ export default class VoiceWorker extends GatewayWorker {
                 protocol: "udp",
                 data: {
                     "address": await this.udpServer.getMyAddress(),
-                    "port": this.udpPort,
+                    "port": this.udpServer.getMyPort(),
                     "mode": "xsalsa20_poly1305"
                 }
             }

@@ -1,4 +1,4 @@
-import debug_print from 'debug/debug';
+import debug_print, { DebugLevels } from 'debug/debug';
 import dgram from 'dgram';
 import { EventEmitter } from 'events';
 import { VoiceUDPState } from './VoiceUDPState';
@@ -11,7 +11,8 @@ export default class VoiceUDPHandler {
 
     private server: dgram.Socket;
     private ip: string;
-    private port: number;
+    private destPort: number;
+    private myPort: number;
     private myAddress: string;
 
 
@@ -27,10 +28,19 @@ export default class VoiceUDPHandler {
         this.server = dgram.createSocket('udp4');
         this.setupListeners();
         this.ip = ip;
-        this.port = port;
-        this.server.bind(current_port);
-        current_port++;
-        if (port > 65535) port = 49152;
+        this.destPort = port;
+
+        while (this.myPort === undefined) {
+            try {
+                this.server.bind(current_port);
+                this.myPort = current_port;
+            } catch (e) {
+                debug_print(`Attempted to bind to ${current_port} but failed with ${e}`, DebugLevels.DEBUG);
+            }
+
+            current_port++;
+            if (current_port > 65535) current_port = 49152;
+        }
 
         this.state = VoiceUDPState.INIT
         this.recordFile = fs.createWriteStream('tmp/spying.opus');
@@ -42,7 +52,8 @@ export default class VoiceUDPHandler {
         console.log(`VoiceUDPHandler Info:`)
         console.log(`\tState: ${this.state}`)
         console.log(`\tip: ${this.ip}`)
-        console.log(`\tport: ${this.port}`)
+        console.log(`\tdest_port: ${this.destPort}`);
+        console.log(`\tmy port: ${this.myPort}`);
         console.log(`\tmy address: ${this.myAddress}`)
     }
 
@@ -114,9 +125,29 @@ export default class VoiceUDPHandler {
         }
     }
 
+    public getMyPort(): number {
+
+        // TODO: get port from ip discovery
+        return this.myPort
+
+        // if (this.myAddress === null || this.myAddress === undefined) {
+        //     this.myAddressFound = new EventEmitter();
+
+        //     return new Promise<string>((resolve, reject) => {
+        //         this.myAddressFound.on('completed', () => {
+        //             debug_print("Address found event fired!")
+        //             resolve(this.myPort);
+        //         })
+        //     })
+
+        // } else {
+        //     return Promise.resolve(this.myAddress);
+        // }
+    }
+
     public send(msg) {
         try {
-            this.server.send(msg, this.port, this.ip);
+            this.server.send(msg, this.destPort, this.ip);
         } catch (e) {
             console.error(`Error sending message: \n${e}`);
         }
@@ -138,7 +169,7 @@ export default class VoiceUDPHandler {
 
         buffer = buffer.concat(Array.from(new Uint8Array(64))); // Address (64 bytes)
 
-        let portByteArray = this.getBytes(this.port);
+        let portByteArray = this.getBytes(this.destPort);
         while (portByteArray.length < 2) portByteArray.unshift(0x00);
 
         buffer = buffer.concat(portByteArray);

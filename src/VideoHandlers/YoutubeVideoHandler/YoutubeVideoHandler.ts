@@ -17,7 +17,7 @@ export async function downloadVideo(id: string, timestamp: number = 0, cookies?:
         }
     } : undefined
 
-    let agent = ytdl.createAgent([]);
+    let agent = ytdl.createAgent(JSON.parse(fs.readFileSync(path.join(process.cwd() + "/src/config/cookies.json"), "utf-8")));
 
 
     let url = YOUTUBE_URL + id;

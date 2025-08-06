@@ -15,7 +15,19 @@ const CMD_FOLDER = path.join(process.cwd() + "/src/DiscordBot/Commands/Implement
 var commands;
 var gatewayWorker;
 
+function check_config() {
+
+    // TODO: add check
+
+    // if (!config.DISCORD_APPLICATION_ID || !config.DISCORD_BOT_TOKEN || !config.DISCORD_PUBLIC_KEY || !config.YOUTUBE_API_KEY) {
+    //     console.error("You are missing ")
+    // }
+}
+
 export default async function StartBot() {
+
+    check_config();
+
     debug_print("Starting up bot");
 
     gatewayWorker = GatewayWorkerCache.get("");

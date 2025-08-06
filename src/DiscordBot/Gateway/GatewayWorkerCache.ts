@@ -12,7 +12,7 @@ export class GatewayWorkerCache {
 
         serverID = serverID === undefined ? "" : serverID;
 
-        if (this.cache[serverID] === undefined) {
+        if (this.cache[serverID] === undefined || this.cache[serverID].isClosed()) {
             let gatewayConnection = await createGatewayConnection(serverID);
             this.cache[serverID] = gatewayConnection;
             return gatewayConnection;

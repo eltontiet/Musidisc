@@ -60,7 +60,7 @@ export default class GatewayWorker {
         this.websocket.on('close', (res) => {
             console.error(res);
 
-            if (res === 4006 || res === 4014) {
+            if (res === 4003 || res === 4006 || res === 4014) {
                 console.error("Session was closed by Discord, start a new session to reconnect")
                 this.closeConnection();
             }

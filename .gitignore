@@ -4,3 +4,5 @@ src/config/*
 tmp
 .VSCodeCounter
 .vscode
+logs
+start_debug.sh

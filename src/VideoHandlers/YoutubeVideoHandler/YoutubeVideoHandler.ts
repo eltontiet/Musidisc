@@ -1,26 +1,80 @@
-import ytdl from '@distube/ytdl-core'
-import fs from 'fs'
+import fs, { read } from 'fs'
 import path from 'path'
 import debug_print, { DebugLevels } from 'debug/debug'
-
+import { Innertube, FormatUtils } from 'youtubei.js'
+import ytdl from '@distube/ytdl-core'
+import { opus } from 'prism-media'
+import { Readable } from 'stream'
+import { Format } from 'youtubei.js/dist/src/parser/misc'
 
 const YOUTUBE_URL = "http://www.youtube.com/watch?v="
 
 const TEMP_FOLDER = path.join(process.cwd() + "/tmp");
 
-export async function downloadVideo(id: string, timestamp: number = 0, cookies?: string) {
+const MAX_TRIES = 5;
+
+export async function downloadVideo(id: string, timestamp: number = 0) {
     if (!fs.existsSync(TEMP_FOLDER)) fs.mkdirSync(TEMP_FOLDER);
 
-    let requestOptions = cookies ? {
-        headers: {
-            cookie: cookies
-        }
-    } : undefined
-
-    let agent = ytdl.createAgent(JSON.parse(fs.readFileSync(path.join(process.cwd() + "/src/config/cookies.json"), "utf-8")));
-
+    let cookies = JSON.parse(fs.readFileSync(path.join(process.cwd() + "/src/config/cookies.json"), "utf-8"));
 
     let url = YOUTUBE_URL + id;
+
+    return iyoutubeDownload(id, timestamp, cookies).then(
+        (readableStream) => Readable.fromWeb(readableStream)
+    );
+
+    // return ytdlDownload(url, timestamp, cookies);
+}
+
+
+
+async function iyoutubeDownload(id: string, timestamp: number, cookies) {
+    const innertube = await Innertube.create({
+        cookie: cookies
+    });
+
+    let info = await innertube.getBasicInfo(id, {
+        client: 'TV'
+    });
+
+    info.streaming_data.adaptive_formats = info.streaming_data.adaptive_formats.filter((format) => !format.is_drc); // remove all drc formats
+
+    let tries = 0;
+
+    while (tries < MAX_TRIES) {
+        try {
+            return FormatUtils.download({ // use inner util function directly
+                quality: 'best',
+                type: 'audio',
+                format: 'any',
+                client: 'TV',
+                codec: 'opus'
+            }, info.actions, info.playability_status, info.streaming_data, undefined, info.cpn)
+
+        } catch (e) {
+            debug_print(`Error downloading video, retrying after 500ms: ${tries}/${MAX_TRIES}`, DebugLevels.DEBUG);
+            tries++;
+            await new Promise((res) => setTimeout(res, 500));
+        }
+    }
+
+    throw new Error("Failed to download video");
+
+    // return innertube.download(id, {
+    //     quality: 'best',
+    //     type: 'audio',
+    //     format: 'any',
+    //     client: 'TV',
+    //     codec: 'opus'
+    // })
+}
+
+async function ytdlDownload(url: string, timestamp: number, cookies) {
+    let agent = ytdl.createAgent(cookies);
+
+
+
 
     // Get audio options
 
@@ -54,12 +108,10 @@ export async function downloadVideo(id: string, timestamp: number = 0, cookies?:
     return ytdl.downloadFromInfo(info,
         {
             format: format,
-            requestOptions: requestOptions,
             dlChunkSize: 0,
             begin: timestamp,
             liveBuffer: 5000,
             agent,
 
         });
-
 }

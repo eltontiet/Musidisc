@@ -6,9 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npx ts-node -r tsconfig-paths/register src/index.ts",
-    "debug_info": "npx ts-node -r tsconfig-paths/register src/index.ts -D -L INFO",
-    "debug": "npx ts-node -r tsconfig-paths/register src/index.ts -D -L DEBUG",
-    "setup-commands": "npx ts-node -r tsconfig-paths/register src/DiscordBot/SetupCommands.ts -D"
+    "debug_info": "npx tsx src/index.ts -D -L INFO",
+    "debug": "npx tsx src/index.ts -D -L DEBUG",
+    "setup-commands": "npx tsx src/DiscordBot/SetupCommands.ts -D"
   },
   "repository": {
     "type": "git",
@@ -34,7 +34,8 @@
     "prism-media": "^1.3.5",
     "tmp": "^0.2.3",
     "typescript": "^5.4.5",
-    "ws": "^8.17.1"
+    "ws": "^8.17.1",
+    "youtubei.js": "^15.0.1"
   },
   "devDependencies": {
     "@types/ws": "^8.5.10",

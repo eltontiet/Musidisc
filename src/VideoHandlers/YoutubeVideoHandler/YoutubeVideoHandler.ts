@@ -30,15 +30,69 @@ export async function downloadVideo(id: string, timestamp: number = 0) {
 
 
 async function iyoutubeDownload(id: string, timestamp: number, cookies) {
+
+    debug_print("Downloading video!", DebugLevels.DEBUG);
+
     const innertube = await Innertube.create({
         cookie: cookies
     });
 
-    let info = await innertube.getBasicInfo(id, {
-        client: 'TV'
-    });
 
-    info.streaming_data.adaptive_formats = info.streaming_data.adaptive_formats.filter((format) => !format.is_drc); // remove all drc formats
+    debug_print("Nothing worked... just trying to download!", DebugLevels.DEBUG);
+    return innertube.download(id, { // use inner util function directly
+        quality: 'best',
+        type: 'audio',
+        format: 'any',
+        codec: 'opus',
+        client: 'TV'
+    })
+
+
+
+
+    let info;
+    try {
+        info = await innertube.getBasicInfo(id, {
+            client: 'TV'
+        });
+
+        debug_print("Got mweb!", DebugLevels.DEBUG);
+    } catch (e) {
+        console.error(e);
+    }
+
+    if (!info?.streaming_data?.adaptive_formats[0].url) {
+        info = await innertube.getBasicInfo(id, {
+            client: 'YTMUSIC'
+        });
+        debug_print("Got ytmusic!", DebugLevels.DEBUG);
+    }
+
+    // if (!info?.streaming_data?.adaptive_formats[0].url) {
+    //     info = await innertube.getBasicInfo(id, {
+    //         client: 'YTMUSIC_ANDROID'
+    //     });
+    // }
+
+    if (!info?.streaming_data?.adaptive_formats[0].url) {
+        info = await innertube.getBasicInfo(id, {
+            client: 'MWEB'
+        });
+        debug_print("Got TV!", DebugLevels.DEBUG);
+    }
+
+    if (!info?.streaming_data?.adaptive_formats[0].url) { // cannot get info so just try downloading it
+        debug_print("Nothing worked... just trying to download!", DebugLevels.DEBUG);
+        return innertube.download(id, { // use inner util function directly
+            quality: 'best',
+            type: 'audio',
+            format: 'any',
+            codec: 'opus',
+            client: 'TV'
+        })
+    }
+
+    info.streaming_data.adaptive_formats = info.streaming_data.adaptive_formats?.filter((format) => !format.is_drc); // remove all drc formats
 
     let tries = 0;
 

@@ -222,6 +222,11 @@ export default class VoiceWorker extends GatewayWorker {
 
             (async () => {
                 let gatewayWorker = await GatewayWorkerCache.get("");
+
+                if (gatewayWorker.isClosed()) {
+                    debug_print("There was a problem with the gatewayWorker, try again later.", DebugLevels.INFO);
+                    return;
+                }
                 let voiceInformation = await gatewayWorker.getVoiceInformation(this.serverID, this.channel_id);
 
                 // Setup VoiceWorker

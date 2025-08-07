@@ -2,6 +2,7 @@ import QueueObject from "./QueueObject";
 import prism from 'prism-media'
 import * as YoutubeVideo from '@VideoHandlers/YoutubeVideoHandler/YoutubeVideoHandler'
 import { Result } from "@customTypes/Results";
+import debug_print, { DebugLevels } from 'debug/debug';
 
 export default class YoutubeFileQueueObject extends QueueObject {
 
@@ -16,6 +17,7 @@ export default class YoutubeFileQueueObject extends QueueObject {
 
     public async getOpusResource() {
         let videoStream = await YoutubeVideo.downloadVideo(this.result.id);
+        debug_print("Downloaded video!", DebugLevels.DEBUG);
         return this.handleStream(videoStream);
 
     }
@@ -44,14 +46,7 @@ export default class YoutubeFileQueueObject extends QueueObject {
         videoStream.on('error', (err) => encoder.emit('error', err));
         transcoder.on('error', (err) => encoder.emit('error', err));
 
-        await new Promise<void>((res) => videoStream.on('progress',
-            (bytes_sent, bytes_downloaded, total_bytes) => {
-
-                // debug_print(`Progress: ${bytes_sent} - ${bytes_downloaded} - ${total_bytes}`);
-                // TODO: Do something with this in audiohandler
-
-                if (bytes_downloaded > 100000) res();
-            }));
+        await new Promise((res) => setTimeout(res, 3000)); // 3 seconds to buffer
 
         return videoStream.pipe(transcoder)
             .pipe(encoder);

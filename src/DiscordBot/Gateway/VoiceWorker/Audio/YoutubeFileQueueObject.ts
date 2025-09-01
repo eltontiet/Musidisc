@@ -3,6 +3,7 @@ import prism from 'prism-media'
 import * as YoutubeVideo from '@VideoHandlers/YoutubeVideoHandler/YoutubeVideoHandler'
 import { Result } from "@customTypes/Results";
 import debug_print, { DebugLevels } from 'debug/debug';
+import { Readable } from 'stream'
 
 export default class YoutubeFileQueueObject extends QueueObject {
 
@@ -31,7 +32,7 @@ export default class YoutubeFileQueueObject extends QueueObject {
         return this.handleStream(videoStream);
     }
 
-    private async handleStream(videoStream) {
+    private async handleStream(videoStream: Readable) {
         let transcoder = new prism.FFmpeg({
             args: [
                 '-analyzeduration', '0',
@@ -41,14 +42,17 @@ export default class YoutubeFileQueueObject extends QueueObject {
             ]
         })
 
-        let encoder = new prism.opus.Encoder({ rate: 48000, channels: 2, frameSize: 960 });
+        // let encoder = new prism.opus.Encoder({ rate: 48000, channels: 2, frameSize: 960 });
+
+        let encoder = new prism.opus.WebmDemuxer();
 
         videoStream.on('error', (err) => encoder.emit('error', err));
         transcoder.on('error', (err) => encoder.emit('error', err));
+        encoder.on('close', () => videoStream.destroy());
 
         await new Promise((res) => setTimeout(res, 3000)); // 3 seconds to buffer
 
-        return videoStream.pipe(transcoder)
+        return videoStream
             .pipe(encoder);
     }
 }

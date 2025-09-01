@@ -13,7 +13,7 @@ const TEMP_FOLDER = path.join(process.cwd() + "/tmp");
 
 const MAX_TRIES = 5;
 
-export async function downloadVideo(id: string, timestamp: number = 0) {
+export async function downloadVideo(id: string, timestamp: number = 0): Promise<Readable> {
     if (!fs.existsSync(TEMP_FOLDER)) fs.mkdirSync(TEMP_FOLDER);
 
     let cookies = JSON.parse(fs.readFileSync(path.join(process.cwd() + "/src/config/cookies.json"), "utf-8"));
@@ -21,7 +21,33 @@ export async function downloadVideo(id: string, timestamp: number = 0) {
     let url = YOUTUBE_URL + id;
 
     return iyoutubeDownload(id, timestamp, cookies).then(
-        (readableStream) => Readable.fromWeb(readableStream)
+        (readableStream) => {
+
+            let path = `${TEMP_FOLDER}/${crypto.randomUUID()}.webm`;
+
+            let writeStream = Readable.fromWeb(readableStream).pipe(fs.createWriteStream(path));
+
+            return new Promise((res) => {
+                writeStream.on('close', () => {
+                    let stream = fs.createReadStream(path);
+                    stream.on('close', () => {
+                        debug_print("Got close!", DebugLevels.DEBUG);
+                        fs.rm(path, (err) => {
+                            if (err) {
+                                console.error(`There was a problem removing ${path} with error ${err}`);
+                            } else {
+                                debug_print(`Successfully removed ${path}`, DebugLevels.INFO);
+                            }
+                        });
+                    })
+                    stream.on('error', (err) => {
+                        console.error(err);
+                    })
+
+                    res(stream);
+                })
+            })
+        }
     );
 
     // return ytdlDownload(url, timestamp, cookies);
@@ -37,59 +63,15 @@ async function iyoutubeDownload(id: string, timestamp: number, cookies) {
         cookie: cookies
     });
 
-
-    debug_print("Nothing worked... just trying to download!", DebugLevels.DEBUG);
-    return innertube.download(id, { // use inner util function directly
-        quality: 'best',
-        type: 'audio',
-        format: 'any',
-        codec: 'opus',
-        client: 'TV'
-    })
-
-
-
-
     let info;
     try {
         info = await innertube.getBasicInfo(id, {
             client: 'TV'
         });
 
-        debug_print("Got mweb!", DebugLevels.DEBUG);
+        debug_print("Got TV!", DebugLevels.DEBUG);
     } catch (e) {
         console.error(e);
-    }
-
-    if (!info?.streaming_data?.adaptive_formats[0].url) {
-        info = await innertube.getBasicInfo(id, {
-            client: 'YTMUSIC'
-        });
-        debug_print("Got ytmusic!", DebugLevels.DEBUG);
-    }
-
-    // if (!info?.streaming_data?.adaptive_formats[0].url) {
-    //     info = await innertube.getBasicInfo(id, {
-    //         client: 'YTMUSIC_ANDROID'
-    //     });
-    // }
-
-    if (!info?.streaming_data?.adaptive_formats[0].url) {
-        info = await innertube.getBasicInfo(id, {
-            client: 'MWEB'
-        });
-        debug_print("Got TV!", DebugLevels.DEBUG);
-    }
-
-    if (!info?.streaming_data?.adaptive_formats[0].url) { // cannot get info so just try downloading it
-        debug_print("Nothing worked... just trying to download!", DebugLevels.DEBUG);
-        return innertube.download(id, { // use inner util function directly
-            quality: 'best',
-            type: 'audio',
-            format: 'any',
-            codec: 'opus',
-            client: 'TV'
-        })
     }
 
     info.streaming_data.adaptive_formats = info.streaming_data.adaptive_formats?.filter((format) => !format.is_drc); // remove all drc formats
@@ -98,13 +80,13 @@ async function iyoutubeDownload(id: string, timestamp: number, cookies) {
 
     while (tries < MAX_TRIES) {
         try {
-            return FormatUtils.download({ // use inner util function directly
+            return info.download({ // TODO: Add chunking
                 quality: 'best',
                 type: 'audio',
                 format: 'any',
                 client: 'TV',
                 codec: 'opus'
-            }, info.actions, info.playability_status, info.streaming_data, undefined, info.cpn)
+            })
 
         } catch (e) {
             debug_print(`Error downloading video, retrying after 500ms: ${tries}/${MAX_TRIES}`, DebugLevels.DEBUG);

@@ -113,7 +113,7 @@ export default class AudioHandler implements VoiceWorkerListener {
         }
 
         if (!packet) {
-            // console.error("Tried to play a null packet, skipping....");
+            console.error("Tried to play a null packet, skipping....");
             if (this.state.current_time > 0)
                 this.state.skipped_packets++;
 
@@ -143,6 +143,7 @@ export default class AudioHandler implements VoiceWorkerListener {
         this.framesOfSilence = 5;
         this.state.playing = false;
         this.state.current_song = undefined;
+        this.state.opusStream.destroy();
 
         this.voiceWorker.stopSpeaking();
     }
@@ -166,15 +167,13 @@ export default class AudioHandler implements VoiceWorkerListener {
     public stop() {
         this.queue = [];
         this.state.playing = false;
+        this.state.opusStream.destroy();
         this.state.opusStream = undefined;
         clearInterval(this.playTimer);
     }
 
     private songError(e: Event) {
         console.error(`Error handling stream: \n${e}`);
-        // this.tryResetSong();
-
-        this.state.opusStream.destroy();
         this.finishSong();
 
         return;
@@ -194,7 +193,6 @@ export default class AudioHandler implements VoiceWorkerListener {
 
     public skip() {
         let currentSong = (this.state.current_song as YoutubeFileQueueObject).getResult();
-        this.state.opusStream.destroy();
         this.finishSong();
 
         return currentSong;

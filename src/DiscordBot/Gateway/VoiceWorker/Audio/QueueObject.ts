@@ -10,7 +10,7 @@ export default abstract class QueueObject {
         CHANNELS: 2
     }
 
-    abstract getOpusResource(): Promise<OpusStream>;
+    abstract getOpusResource();
 
     abstract getOpusResourceAtTimestamp(millis: number);
 }

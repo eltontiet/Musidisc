@@ -157,10 +157,12 @@ export default class GatewayWorker {
     }
 
     protected sendHeartbeat() {
-        this.websocket.send(JSON.stringify({
-            op: GatewayOpcodes.Heartbeat,
-            d: this.sequenceNum
-        }))
+        if (!this.closed) {
+            this.websocket.send(JSON.stringify({
+                op: GatewayOpcodes.Heartbeat,
+                d: this.sequenceNum
+            }))
+        }
     }
 
     private handleDispatch(json) {
@@ -195,7 +197,12 @@ export default class GatewayWorker {
         this.websocket.send(JSON.stringify(json));
     }
 
-    public getVoiceInformation(serverID, channelID): Promise<VoiceInformation> {
+    public async getVoiceInformation(serverID, channelID): Promise<VoiceInformation> {
+
+        while (!this.user) {
+            await new Promise((res) => setTimeout(res, 200)); // wait for gateway handler to be ready, TODO: Use state + events for this
+        }
+
         this.voiceCompleted = new EventEmitter();
 
         // Set up promise:

@@ -60,7 +60,8 @@ async function iyoutubeDownload(id: string, timestamp: number, cookies) {
     debug_print("Downloading video!", DebugLevels.DEBUG);
 
     const innertube = await Innertube.create({
-        cookie: cookies
+        cookie: cookies,
+        player_id: '0004de42'
     });
 
     let info;

@@ -158,10 +158,16 @@ export default class GatewayWorker {
 
     protected sendHeartbeat() {
         if (!this.closed) {
-            this.websocket.send(JSON.stringify({
-                op: GatewayOpcodes.Heartbeat,
-                d: this.sequenceNum
-            }))
+            try {
+                this.websocket.send(JSON.stringify({
+                    op: GatewayOpcodes.Heartbeat,
+                    d: this.sequenceNum
+                }))
+            } catch (e) {
+                console.error(e);
+                this.closeConnection();
+            }
+
         }
     }
 

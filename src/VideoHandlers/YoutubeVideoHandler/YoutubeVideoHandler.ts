@@ -1,11 +1,27 @@
 import fs, { read } from 'fs'
 import path from 'path'
 import debug_print, { DebugLevels } from 'debug/debug'
-import { Innertube, FormatUtils } from 'youtubei.js'
+import { Innertube, Platform, Types } from 'youtubei.js'
 import ytdl from '@distube/ytdl-core'
 import { opus } from 'prism-media'
 import { Readable } from 'stream'
 import { Format } from 'youtubei.js/dist/src/parser/misc'
+
+Platform.shim.eval = async (data: Types.BuildScriptResult, env: Record<string, Types.VMPrimative>) => {
+    const properties = [];
+
+    if (env.n) {
+        properties.push(`n: exportedVars.nFunction("${env.n}")`)
+    }
+
+    if (env.sig) {
+        properties.push(`sig: exportedVars.sigFunction("${env.sig}")`)
+    }
+
+    const code = `${data.output}\nreturn { ${properties.join(', ')} }`;
+
+    return new Function(code)();
+}
 
 const YOUTUBE_URL = "http://www.youtube.com/watch?v="
 
@@ -60,8 +76,7 @@ async function iyoutubeDownload(id: string, timestamp: number, cookies) {
     debug_print("Downloading video!", DebugLevels.DEBUG);
 
     const innertube = await Innertube.create({
-        cookie: cookies,
-        player_id: '0004de42'
+        cookie: cookies
     });
 
     let info;
@@ -73,6 +88,21 @@ async function iyoutubeDownload(id: string, timestamp: number, cookies) {
         debug_print("Got TV!", DebugLevels.DEBUG);
     } catch (e) {
         console.error(e);
+    }
+
+    if (!info.streaming_data) {
+        console.log("Trying YTMUSIC");
+
+        try {
+            info = await innertube.getBasicInfo(id, {
+                client: 'YTMUSIC'
+            });
+
+            debug_print("Got YTMUSIC!", DebugLevels.DEBUG);
+        } catch (e) {
+            console.error(e);
+            return;
+        }
     }
 
     info.streaming_data.adaptive_formats = info.streaming_data.adaptive_formats?.filter((format) => !format.is_drc); // remove all drc formats

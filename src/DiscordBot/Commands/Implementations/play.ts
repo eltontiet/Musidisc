@@ -2,8 +2,9 @@ import debug_print from "debug/debug";
 import { ApplicationCommand, InteractionResponseType } from "discord.js";
 import * as YoutubeAPIHandler from "@VideoHandlers/YoutubeVideoHandler/YoutubeAPIHandler";
 import { getVoiceInformation } from "DiscordBot/Services/DiscordAPIService";
-import addResultToQueue from "../Handlers/QueueHandler";
+import addResultToQueue, { addSpotifyTrackstoQueue } from "../Handlers/QueueHandler";
 import { url } from "inspector";
+import { getPlaylistTracks } from "@VideoHandlers/SpotifyHandler/SpotifyAPIHandler";
 
 var worker;
 
@@ -44,12 +45,15 @@ export default async function play(req, res) {
         debug_print(`hostname: ${url.hostname}, pathname: ${url.pathname}`)
 
         if (url.hostname === "youtube.com" || url.hostname === "www.youtube.com") {
-            switch (url.pathname) {
-                case '/watch':
+            switch (url.pathname.split('/')[1]) {
+                case 'watch':
                     request = url.searchParams.get("v");
                     break;
                 default:
                     debug_print(`The youtube url must link to a video or playlist`);
+
+                    // Just try searching the entire url
+
                     break;
 
                 // TODO: Send error through discord
@@ -57,12 +61,25 @@ export default async function play(req, res) {
 
         } else if (url.hostname === "youtu.be" || url.hostname === "www.youtu.be") {
             request = url.pathname.slice(1); // remove '/'
+
+        } else if (url.hostname === "open.spotify.com") {
+            let paths = url.pathname.split('/');
+            switch (paths[1]) {
+                case 'playlist':
+                    let tracks = await getPlaylistTracks(paths[2]);
+
+                    // Special spotify case (TODO: extract to a different place)
+                    addSpotifyTrackstoQueue(req, res, tracks);
+
+                    return;
+            }
         }
 
         debug_print(`Request: ${request}`);
 
     } catch (e) {
         // request is not a url, try search
+        debug_print(`Searching: ${request}`);
     }
 
     try {

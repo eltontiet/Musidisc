@@ -1,7 +1,7 @@
 import VoiceWorker from "DiscordBot/Gateway/VoiceWorker/VoiceWorker";
 import { VoiceWorkerCache } from "DiscordBot/Gateway/VoiceWorker/VoiceWorkerCache";
 import debug_print, { DebugLevels } from "debug/debug";
-import { ButtonStyle, ComponentType, InteractionResponseType, MessageFlags } from "discord.js";
+import { ButtonStyle, ComponentType, InteractionResponseType, MessageFlags, resolveBuilder } from "discord.js";
 import YoutubeFileQueueObject from "DiscordBot/Gateway/VoiceWorker/Audio/YoutubeFileQueueObject";
 import { editFollowupMessage, getVoiceInformation } from "DiscordBot/Services/DiscordAPIService";
 import { Component } from "@customTypes/DiscordCommand";
@@ -10,11 +10,12 @@ import { formatTimeFromMillis } from "DiscordBot/Util/time";
 import { QueueRequestCache } from "DiscordBot/Util/Caches";
 import QueueObject from "DiscordBot/Gateway/VoiceWorker/Audio/QueueObject";
 import { QueueRequest } from "@customTypes/CommandState";
+import SpotifyTrackQueueObject from "DiscordBot/Gateway/VoiceWorker/Audio/SpotifyTrackQueueObject";
 
 const TIMEOUT = 5 * 60 * 1000; // 5 mins * 60 secs/min * 1000 ms/sec
 const QUEUE_ITEMS_PER_PAGE = 8;
 
-function buildQueueResponse(queueRequest: QueueRequest, id: string): Component[] {
+async function buildQueueResponse(queueRequest: QueueRequest, id: string): Promise<Component[]> {
 
     let queue = queueRequest.queue;
 
@@ -26,10 +27,11 @@ function buildQueueResponse(queueRequest: QueueRequest, id: string): Component[]
 
     let queueSections = [];
 
-    queueAtPage.forEach((queueObject, index) => {
-        queueSections.push(createQueueSection(queueObject, id));
+    for (let queueObject of queueAtPage) {
+        queueSections.push(await createQueueSection(queueObject, id));
         queueSections.push({ type: ComponentType.Separator });
-    });
+    };
+
 
     if (queueSections.length === 0) {
         debug_print(`There was nothing in the queue!`);
@@ -69,13 +71,25 @@ function buildQueueResponse(queueRequest: QueueRequest, id: string): Component[]
     return components
 }
 
-function createQueueSection(queueObject: QueueObject, id: string): Component {
+async function createQueueSection(queueObject: QueueObject, id: string): Promise<Component> {
 
     let content = "";
 
     if (queueObject instanceof YoutubeFileQueueObject) {
 
         let result = queueObject.getResult();
+
+        let duration = moment.duration(result.length);
+        let length = formatTimeFromMillis(duration.asMilliseconds());
+
+        content = `[${result.title}](https://youtu.be/${result.id}) ` +
+            `by [${result.channelTitle}](https://youtube.com/channel/${result.channelID})` +
+            ` - ${length}`;
+
+
+    } else if (queueObject instanceof SpotifyTrackQueueObject) {
+
+        let result = await queueObject.getYoutubeResult();
 
         let duration = moment.duration(result.length);
         let length = formatTimeFromMillis(duration.asMilliseconds());
@@ -161,7 +175,7 @@ export async function handle_queue_page_callback(res, rest, direction) {
         queueRequest.current_page++;
     }
 
-    let components = buildQueueResponse(queueRequest, id);
+    let components = await buildQueueResponse(queueRequest, id);
 
     res.status(200).send({
         type: InteractionResponseType.UpdateMessage,
@@ -194,10 +208,10 @@ export async function handle_queue_remove_callback(res, rest: string) {
     }
 
     let index = queueRequest.queue.findIndex((queueObject) => queueObject.id == toRemoveId);
-    let result = queueRequest.queue[index];
+    let queueObject = queueRequest.queue[index];
     queueRequest.queue.splice(index, 1);
 
-    if (!result) {
+    if (!queueObject) {
         res.status(200).send({
             type: InteractionResponseType.ChannelMessageWithSource,
             data: {
@@ -210,8 +224,11 @@ export async function handle_queue_remove_callback(res, rest: string) {
 
     let songTitle = "Unknown song"
 
-    if (result instanceof YoutubeFileQueueObject) {
-        songTitle = `[${result.getResult().title}](https://youtu.be/${result.getResult().id})`;
+    if (queueObject instanceof YoutubeFileQueueObject) {
+        songTitle = `[${queueObject.getResult().title}](https://youtu.be/${queueObject.getResult().id})`;
+    } else if (queueObject instanceof SpotifyTrackQueueObject) {
+        let result = await queueObject.getYoutubeResult();
+        songTitle = `[${result.title}](https://youtu.be/${result.id})`;
     }
 
     res.status(200).send({
@@ -288,7 +305,7 @@ export default async function queue(req, res) {
     QueueRequestCache.set(id, queueRequest);
     setTimeout((token) => { QueueRequestCache.remove(token) }, TIMEOUT, id) // 5 mins * 60 secs * 
 
-    let components = buildQueueResponse(queueRequest, id);
+    let components = await buildQueueResponse(queueRequest, id);
 
     let followupResponse;
 
